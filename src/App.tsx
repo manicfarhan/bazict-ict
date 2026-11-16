@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
+import {
+  supabase,
+  fetchOrdersFromDb,
+  insertOrderToDb,
+  updateOrderStatusInDb,
+  updateOrderPaymentInDb,
+  fetchReviewsFromDb,
+  insertReviewToDb,
+  fetchAdminConfigFromDb,
+  saveAdminConfigToDb
+} from './supabase'
 
 // Helper format Rupiah
 const formatRupiah = (amount: number) => {
@@ -217,8 +228,29 @@ export interface CanvaDesignConfig {
 }
 
 // ==========================================
-// DEFAULT INITIAL DATA
+// DEFAULT INITIAL DATA (PURE KOSONG - ADMIN MENGISI DARI AWAL)
 // ==========================================
+
+// Helper membersihkan data cache lama dari browser agar web pure kosong
+const getCleanStorage = <T,>(key: string, defaultVal: T): T => {
+  const saved = localStorage.getItem(key)
+  if (!saved) return defaultVal
+  try {
+    const parsed = JSON.parse(saved)
+    if (Array.isArray(parsed)) {
+      const hasDummy = parsed.some((item: any) =>
+        item?.id && typeof item.id === 'string' && /^(m[0-9]+|fp-[0-9]+|sc[0-9]+|b[0-9]+|r[0-9]+|t[0-9]+|s[0-9]+)$/.test(item.id)
+      )
+      if (hasDummy) {
+        localStorage.setItem(key, JSON.stringify(defaultVal))
+        return defaultVal
+      }
+    }
+    return parsed
+  } catch {
+    return defaultVal
+  }
+}
 
 const INITIAL_USERS: CustomerUser[] = [
   {
@@ -243,9 +275,9 @@ const INITIAL_USERS: CustomerUser[] = [
   }
 ]
 
-const INITIAL_CATEGORIES = ['Makanan Berat', 'Camilan', 'Minuman', 'Dessert', 'Paket Belajar']
+const INITIAL_CATEGORIES: string[] = ['Makanan Berat', 'Camilan', 'Minuman']
 
-// Identitas Toko & Teks Hero Default (Bersih dari anjuran begadang sesuai aturan sekolah)
+// Identitas Toko & Teks Hero Default
 const INITIAL_STORE_IDENTITY: StoreIdentity = {
   topBarLeft: '🏫 MAN Insan Cendekia Tanah Laut',
   topBarRight: '🍱 Kantin Asrama & Pengantaran Kamar',
@@ -253,8 +285,8 @@ const INITIAL_STORE_IDENTITY: StoreIdentity = {
   brandSuffix: 'Tala',
   brandSubtitle: 'Kantin Asrama MAN IC Tanah Laut',
   logoEmoji: '🍟',
-  heroTitle: 'Lapar Setelah Aktivitas & Belajar? Pesan Sekarang! 🍱',
-  heroDescription: 'Layanan resmi pemesanan makanan & minuman higienis kantin asrama MAN Insan Cendekia Tanah Laut. Diantar langsung ke lobi asrama putra dan asrama putri dengan cepat dan hangat.',
+  heroTitle: 'Selamat Datang di Kantin Asrama MAN IC Tala 🍱',
+  heroDescription: 'Layanan resmi pemesanan makanan & minuman higienis kantin asrama MAN Insan Cendekia Tanah Laut. Diantar langsung ke lobi asrama putra dan asrama putri.',
   heroFeatures: [
     '⚡ Antar Langsung ke Kamar Asrama',
     '💵 Bayar Offline (Ketemuan Langsung / COD)',
@@ -265,185 +297,30 @@ const INITIAL_STORE_IDENTITY: StoreIdentity = {
   noticeEmoji: '💡'
 }
 
-// Bubble / Sticker Tags Default
-const INITIAL_HERO_BADGES: HeroBadge[] = [
-  { id: 'b1', text: '🍱 Makanan Bergizi Asrama', bg: '#f43f5e', textColor: '#ffffff' },
-  { id: 'b2', text: '⚡ Siap Antar ke Kamar', bg: '#8b5cf6', textColor: '#ffffff' },
-  { id: 'b3', text: '🏫 Asrama MAN IC Tala', bg: '#f59e0b', textColor: '#1e1b4b' },
-  { id: 'b4', text: '🥗 Bersih & Halal', bg: '#10b981', textColor: '#ffffff' }
-]
+// Bubble / Sticker Tags Default (Kosong)
+const INITIAL_HERO_BADGES: HeroBadge[] = []
 
-// Showcase Kotak Gambar Default (Kiri dan Kanan yang sebelumnya kosong)
-const INITIAL_SHOWCASE_WIDGETS: ShowcaseWidget[] = [
-  {
-    id: 'sc1',
-    title: 'Ayam Geprek Sambal Korek',
-    priceTag: 'Rp 20.000',
-    imageUrl: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&auto=format&fit=crop&q=80',
-    shape: 'rounded',
-    caption: 'Pedas Nampol Favorit Asrama',
-    position: 'left'
-  },
-  {
-    id: 'sc2',
-    title: 'Roti Bakar Keju Lumer',
-    priceTag: 'Rp 13.000',
-    imageUrl: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=500&auto=format&fit=crop&q=80',
-    shape: 'tilt-left',
-    caption: 'Manis Gurih Teman Tugas',
-    position: 'left'
-  },
-  {
-    id: 'sc3',
-    title: 'Mie Nyemek Telur Kornet',
-    priceTag: 'Rp 16.000',
-    imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&auto=format&fit=crop&q=80',
-    shape: 'squircle',
-    caption: 'Kuah Kental Bumbu Rempah',
-    position: 'right'
-  },
-  {
-    id: 'sc4',
-    title: 'Es Kopi Susu Aren Asrama',
-    priceTag: 'Rp 12.000',
-    imageUrl: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&auto=format&fit=crop&q=80',
-    shape: 'polaroid',
-    caption: 'Segar & Semangat Belajar',
-    position: 'right'
-  }
-]
+// Showcase Kotak Gambar Default (Kosong)
+const INITIAL_SHOWCASE_WIDGETS: ShowcaseWidget[] = []
 
-// Banner Poster Makanan Default (Maximalisme: Mengisi Ruang Hitam Sisi Kiri & Kanan)
-const INITIAL_FOOD_POSTERS: FoodPoster[] = [
-  {
-    id: 'fp-1',
-    title: '🔥 SUPER GEPREK CRISPY COMBO',
-    subtitle: 'Ayam Krispi Sambal Korek Asli + Nasi Pulen + Es Teh Manis Jumbo',
-    badgeText: 'DISKON 35% 🔥',
-    badgeColor: '#ef4444',
-    priceTag: 'Rp 22.000',
-    imageUrl: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&auto=format&fit=crop&q=80',
-    position: 'left',
-    targetMenuName: 'Ayam Geprek Sambal Korek',
-    accentColor: '#f43f5e',
-    isActive: true
-  },
-  {
-    id: 'fp-2',
-    title: '🍔 TRIPLE CHEESE MONSTER BURGER',
-    subtitle: 'Daging Sapi Panggang Gurih dengan Lapisan Keju Cheddar Meleleh',
-    badgeText: 'BEST SELLER ⭐',
-    badgeColor: '#f59e0b',
-    priceTag: 'Rp 25.000',
-    imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80',
-    position: 'left',
-    targetMenuName: 'Burger Spesial Asrama',
-    accentColor: '#e11d48',
-    isActive: true
-  },
-  {
-    id: 'fp-3',
-    title: '🍕 PIZZA MELT DORM SUPREME',
-    subtitle: 'Sosis Sapi Pilihan, Smoked Beef, Paprika & Mozzarella Molor Panjang',
-    badgeText: 'HOT DEAL ⚡',
-    badgeColor: '#ec4899',
-    priceTag: 'Rp 28.000',
-    imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80',
-    position: 'left',
-    targetMenuName: 'Pizza Sosis Mozzarella',
-    accentColor: '#8b5cf6',
-    isActive: true
-  },
-  {
-    id: 'fp-4',
-    title: '🍹 MATCHA LATTE & BOBA CRUSH',
-    subtitle: 'Matcha Uji Premium Dingin dengan Boba Kenyal Segar Pelepas Dahaga',
-    badgeText: 'BELI 2 GRATIS 1 🎉',
-    badgeColor: '#10b981',
-    priceTag: 'Rp 15.000',
-    imageUrl: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=600&auto=format&fit=crop&q=80',
-    position: 'right',
-    targetMenuName: 'Es Kopi Susu Aren Asrama',
-    accentColor: '#059669',
-    isActive: true
-  },
-  {
-    id: 'fp-5',
-    title: '🍜 MIE NYEMEK SPESIAL ASRAMA',
-    subtitle: 'Kuah Rempah Medok Telur Orak-Arik & Kornet Gurih Favorit Murid',
-    badgeText: 'TOP RATED 5.0 ⭐',
-    badgeColor: '#8b5cf6',
-    priceTag: 'Rp 16.000',
-    imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop&q=80',
-    position: 'right',
-    targetMenuName: 'Mie Nyemek Telur Kornet',
-    accentColor: '#7c3aed',
-    isActive: true
-  },
-  {
-    id: 'fp-6',
-    title: '🍫 CHOCO LAVA CAKE & WAFFLE',
-    subtitle: 'Cokelat Belgia Meleleh Hangat Teman Belajar & Santai Malam',
-    badgeText: 'SWEET TREAT 🍰',
-    badgeColor: '#d97706',
-    priceTag: 'Rp 14.000',
-    imageUrl: 'https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=600&auto=format&fit=crop&q=80',
-    position: 'right',
-    targetMenuName: 'Roti Bakar Keju Lumer',
-    accentColor: '#f97316',
-    isActive: true
-  }
-]
+// Banner Poster Makanan Default (Kosong)
+const INITIAL_FOOD_POSTERS: FoodPoster[] = []
 
-// Tim Pengembang Default
-const INITIAL_DEV_TEAM: DevTeamMember[] = [
-  {
-    id: 't1',
-    name: 'Ahmad Zaki Farhan',
-    kelas: 'XI MIPA 1',
-    role: 'Project Leader & Frontend Developer',
-    bio: 'Murid aktif MAN IC Tala angkatan 7. Mengembangkan arsitektur dan sistem antarmuka web kantin.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 't2',
-    name: 'Raihan Ananda Putra',
-    kelas: 'XI MIPA 2',
-    role: 'UI/UX Designer & System Data',
-    bio: 'Spesialis perancangan tata letak visual, pengalaman murid, dan alur pembayaran offline.',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 't3',
-    name: 'Aisyah Nabila Az-Zahra',
-    kelas: 'X-2',
-    role: 'Quality Control & Review Lead',
-    bio: 'Menjamin kualitas menu, uji kenyamanan pengguna, dan koordinator relasi antar asrama.',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80'
-  }
-]
+// Tim Pengembang Default (Kosong)
+const INITIAL_DEV_TEAM: DevTeamMember[] = []
 
-// Medsos Platform Dinamis Default
-const INITIAL_SOCIALS: SocialPlatform[] = [
-  { id: 's1', platformName: 'Instagram Resmi', handle: '@icbites_tala', url: 'https://instagram.com', iconEmoji: '📸', badgeColor: '#e1306c' },
-  { id: 's2', platformName: 'WhatsApp Pengurus', handle: '0812-3456-7890', url: 'https://wa.me/6281234567890', iconEmoji: '💬', badgeColor: '#25d366' },
-  { id: 's3', platformName: 'Email Resmi', handle: 'kantin@ictala.sch.id', url: 'mailto:kantin@ictala.sch.id', iconEmoji: '✉️', badgeColor: '#ea4335' },
-  { id: 's4', platformName: 'TikTok Kampus', handle: '@manictala_official', url: 'https://tiktok.com', iconEmoji: '🎵', badgeColor: '#000000' }
-]
+// Medsos Platform Dinamis Default (Kosong)
+const INITIAL_SOCIALS: SocialPlatform[] = []
 
 // Tentang Kami Default
 const INITIAL_ABOUT_DATA: ComprehensiveAbout = {
   title: 'Tentang IC-Bites MAN Insan Cendekia Tanah Laut',
   history: 'IC-Bites Tala adalah platform pemesanan makanan mandiri yang diinisiasi dan dikembangkan oleh murid MAN Insan Cendekia Tanah Laut. Terinspirasi dari kehidupan asrama yang dinamis dan padat kegiatan belajar, sistem ini menghubungkan dapur kantin dengan asrama putra dan putri secara rapi, cepat, dan transparan.',
   visionMission: 'Visi kami adalah menciptakan layanan kantin asrama berbasis digital yang higienis, terjangkau, dan memudahkan seluruh murid tanpa harus keluar area kampus.',
-  galleryImages: [
-    'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80'
-  ],
-  videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-  team: INITIAL_DEV_TEAM,
-  socials: INITIAL_SOCIALS
+  galleryImages: [],
+  videoUrl: '',
+  team: [],
+  socials: []
 }
 
 // Konfigurasi Desain Ala Canva Default (Sleek Cyber Dark Mode & Maximalism)
@@ -466,33 +343,11 @@ const INITIAL_CANVA_DESIGN: CanvaDesignConfig = {
   announcementBg: 'linear-gradient(90deg, #f43f5e, #7c3aed)'
 }
 
-// Menu Makanan Default
-const INITIAL_MENUS: MenuItem[] = [];
+// Menu Makanan Default (Kosong)
+const INITIAL_MENUS: MenuItem[] = []
 
-const INITIAL_REVIEWS: Review[] = [
-  {
-    id: 'r1',
-    menuId: 'm1',
-    customerName: 'Ahmad Zaki Farhan',
-    customerKelas: 'XI MIPA 1',
-    customerKamar: 'Asrama Ibnu Sina 204',
-    customerAngkatan: 'Angkatan 7',
-    rating: 5.0,
-    comment: 'Porsi nasi gorengnya pas banget buat mengganjal lapar setelah tugas selesai. Telurnya setengah matang mantap!',
-    createdAt: '2026-10-20T21:30:00Z'
-  },
-  {
-    id: 'r2',
-    menuId: 'm2',
-    customerName: 'Aisyah Nabila Putri',
-    customerKelas: 'X-2',
-    customerKamar: 'Asrama Fatimah 102',
-    customerAngkatan: 'Angkatan 8',
-    rating: 5.0,
-    comment: 'Mie nyemek terenak di lingkungan IC Tala! Kuahnya kental dan pedas gurihnya pas di lidah.',
-    createdAt: '2026-10-21T20:15:00Z'
-  }
-]
+// Ulasan Default (Kosong)
+const INITIAL_REVIEWS: Review[] = []
 
 export default function App() {
   // ==========================================
@@ -535,8 +390,7 @@ export default function App() {
 
   // Banner Poster Makanan (Sisi Kiri & Kanan - Mengisi Ruang Hitam Kosong / Maximalisme)
   const [foodPosters, setFoodPosters] = useState<FoodPoster[]>(() => {
-    const saved = localStorage.getItem('ic_food_posters')
-    return saved ? JSON.parse(saved) : INITIAL_FOOD_POSTERS
+    return getCleanStorage('ic_food_posters', INITIAL_FOOD_POSTERS)
   })
 
   // State Animasi Kotak Bergerak di Admin saat dipilih/diklik
@@ -567,32 +421,27 @@ export default function App() {
 
   // Registered Customer Users
   const [users, setUsers] = useState<CustomerUser[]>(() => {
-    const saved = localStorage.getItem('ic_users')
-    return saved ? JSON.parse(saved) : INITIAL_USERS
+    return getCleanStorage('ic_users', INITIAL_USERS)
   })
 
   // Categories
   const [categories, setCategories] = useState<string[]>(() => {
-    const saved = localStorage.getItem('ic_categories')
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES
+    return getCleanStorage('ic_categories', INITIAL_CATEGORIES)
   })
 
   // Menus
   const [menus, setMenus] = useState<MenuItem[]>(() => {
-    const saved = localStorage.getItem('ic_menus')
-    return saved ? JSON.parse(saved) : INITIAL_MENUS
+    return getCleanStorage('ic_menus', INITIAL_MENUS)
   })
 
   // Orders
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('ic_orders')
-    return saved ? JSON.parse(saved) : []
+    return getCleanStorage('ic_orders', [])
   })
 
   // Reviews
   const [reviews, setReviews] = useState<Review[]>(() => {
-    const saved = localStorage.getItem('ic_reviews')
-    return saved ? JSON.parse(saved) : INITIAL_REVIEWS
+    return getCleanStorage('ic_reviews', INITIAL_REVIEWS)
   })
 
   // Store Identity & Header Info (Semua bisa diedit admin)
@@ -603,21 +452,21 @@ export default function App() {
 
   // Hero Badges / Bubble Stickers (Bisa ditambah & diedit admin)
   const [heroBadges, setHeroBadges] = useState<HeroBadge[]>(() => {
-    const saved = localStorage.getItem('ic_hero_badges')
-    return saved ? JSON.parse(saved) : INITIAL_HERO_BADGES
+    return getCleanStorage('ic_hero_badges', INITIAL_HERO_BADGES)
   })
 
   // Showcase Kotak Gambar (Kiri dan Kanan yang kosong)
   const [showcaseWidgets, setShowcaseWidgets] = useState<ShowcaseWidget[]>(() => {
-    const saved = localStorage.getItem('ic_showcase_widgets')
-    return saved ? JSON.parse(saved) : INITIAL_SHOWCASE_WIDGETS
+    return getCleanStorage('ic_showcase_widgets', INITIAL_SHOWCASE_WIDGETS)
   })
 
   // Tentang Kami Komprehensif
   const [aboutData, setAboutData] = useState<ComprehensiveAbout>(() => {
-    const saved = localStorage.getItem('ic_about_comprehensive')
-    return saved ? JSON.parse(saved) : INITIAL_ABOUT_DATA
+    return getCleanStorage('ic_about_comprehensive', INITIAL_ABOUT_DATA)
   })
+
+  // Status Koneksi Cloud Supabase Realtime
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false)
 
   // Canva-style Design Studio Config
   const [canvaDesign, setCanvaDesign] = useState<CanvaDesignConfig>(() => {
