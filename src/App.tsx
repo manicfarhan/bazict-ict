@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import {
   supabase,
@@ -319,8 +319,8 @@ const INITIAL_ABOUT_DATA: ComprehensiveAbout = {
   visionMission: 'Visi kami adalah menciptakan layanan kantin asrama berbasis digital yang higienis, terjangkau, dan memudahkan seluruh murid tanpa harus keluar area kampus.',
   galleryImages: [],
   videoUrl: '',
-  team: [],
-  socials: []
+  team: INITIAL_DEV_TEAM,
+  socials: INITIAL_SOCIALS
 }
 
 // Konfigurasi Desain Ala Canva Default (Sleek Cyber Dark Mode & Maximalism)
@@ -688,6 +688,136 @@ export default function App() {
   }, [])
 
   // ==========================================
+  // SYNC DENGAN SUPABASE REALTIME CLOUD
+  // ==========================================
+  // 1. Sync Pesanan Masuk (Realtime)
+  const syncOrdersFromCloud = useCallback(async () => {
+    const dbOrders = await fetchOrdersFromDb()
+    if (dbOrders) {
+      setIsCloudConnected(true)
+      const mapped: Order[] = dbOrders.map(row => ({
+        id: row.id,
+        customerName: row.customer_name,
+        customerKelas: row.customer_kelas || '',
+        customerKamar: row.customer_kamar || '',
+        customerAngkatan: row.customer_angkatan || '',
+        phone: row.phone || '',
+        items: Array.isArray(row.items) ? row.items : [],
+        subtotal: Number(row.subtotal) || 0,
+        deliveryFee: Number(row.delivery_fee) || 0,
+        total: Number(row.total) || 0,
+        paymentMethod: row.payment_method || 'Ketemuan Langsung (COD Offline)',
+        paymentStatus: row.payment_status || 'UNPAID',
+        orderStatus: row.order_status || 'DITERIMA',
+        createdAt: row.created_at || new Date().toISOString()
+      }))
+      setOrders(mapped)
+      localStorage.setItem('ic_orders', JSON.stringify(mapped))
+    }
+  }, [])
+
+  // 2. Sync Ulasan Murid (Realtime)
+  const syncReviewsFromCloud = useCallback(async () => {
+    const dbReviews = await fetchReviewsFromDb()
+    if (dbReviews && dbReviews.length > 0) {
+      setIsCloudConnected(true)
+      const mapped: Review[] = dbReviews.map(r => ({
+        id: r.id,
+        menuId: r.menu_id,
+        customerName: r.customer_name,
+        customerKelas: r.customer_kelas || '',
+        customerKamar: r.customer_kamar || '',
+        customerAngkatan: r.customer_angkatan || '',
+        rating: Number(r.rating) || 5.0,
+        comment: r.comment || '',
+        createdAt: r.created_at
+      }))
+      setReviews(mapped)
+      localStorage.setItem('ic_reviews', JSON.stringify(mapped))
+    }
+  }, [])
+
+  // 3. Sync Pengaturan Admin & Menu dari Supabase
+  const syncConfigFromCloud = useCallback(async () => {
+    const config = await fetchAdminConfigFromDb()
+    if (config) {
+      setIsCloudConnected(true)
+      if (Array.isArray(config.menus)) {
+        setMenus(config.menus)
+        localStorage.setItem('ic_menus', JSON.stringify(config.menus))
+      }
+      if (Array.isArray(config.categories) && config.categories.length > 0) {
+        setCategories(config.categories)
+        localStorage.setItem('ic_categories', JSON.stringify(config.categories))
+      }
+      if (Array.isArray(config.food_posters)) {
+        setFoodPosters(config.food_posters)
+        localStorage.setItem('ic_food_posters', JSON.stringify(config.food_posters))
+      }
+      if (Array.isArray(config.showcase_widgets)) {
+        setShowcaseWidgets(config.showcase_widgets)
+        localStorage.setItem('ic_showcase_widgets', JSON.stringify(config.showcase_widgets))
+      }
+      if (Array.isArray(config.hero_badges)) {
+        setHeroBadges(config.hero_badges)
+        localStorage.setItem('ic_hero_badges', JSON.stringify(config.hero_badges))
+      }
+      if (config.store_identity && typeof config.store_identity === 'object' && Object.keys(config.store_identity).length > 0) {
+        setStoreIdentity(prev => ({ ...prev, ...config.store_identity }))
+        localStorage.setItem('ic_store_identity', JSON.stringify(config.store_identity))
+      }
+      if (config.about_data && typeof config.about_data === 'object' && Object.keys(config.about_data).length > 0) {
+        setAboutData(prev => ({ ...prev, ...config.about_data }))
+        localStorage.setItem('ic_about_comprehensive', JSON.stringify(config.about_data))
+      }
+      if (config.canva_design && typeof config.canva_design === 'object' && Object.keys(config.canva_design).length > 0) {
+        setCanvaDesign(prev => ({ ...prev, ...config.canva_design }))
+        localStorage.setItem('ic_canva_design', JSON.stringify(config.canva_design))
+      }
+    }
+  }, [])
+
+  // Effect: Sambungkan ke Supabase (Realtime Channel + Interval Polling 3.5 Detik)
+  useEffect(() => {
+    syncOrdersFromCloud()
+    syncConfigFromCloud()
+    syncReviewsFromCloud()
+
+    const ordersSub = supabase
+      .channel('realtime:orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        syncOrdersFromCloud()
+      })
+      .subscribe()
+
+    const configSub = supabase
+      .channel('realtime:admin_config')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_config' }, () => {
+        syncConfigFromCloud()
+      })
+      .subscribe()
+
+    const reviewsSub = supabase
+      .channel('realtime:reviews')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => {
+        syncReviewsFromCloud()
+      })
+      .subscribe()
+
+    const pollTimer = setInterval(() => {
+      syncOrdersFromCloud()
+      syncConfigFromCloud()
+    }, 3500)
+
+    return () => {
+      supabase.removeChannel(ordersSub)
+      supabase.removeChannel(configSub)
+      supabase.removeChannel(reviewsSub)
+      clearInterval(pollTimer)
+    }
+  }, [syncOrdersFromCloud, syncConfigFromCloud, syncReviewsFromCloud])
+
+  // ==========================================
   // CART CALCULATIONS
   // ==========================================
   const cartSubtotal = cart.reduce((acc, it) => acc + it.itemTotal, 0)
@@ -876,6 +1006,10 @@ export default function App() {
     setCart([])
     setCustomerTab('history')
     showToast(`🚀 Pesanan #${newOrder.id} berhasil dikirim ke dapur kantin!`)
+
+    // Simpan pesanan & kurangi stok langsung di Cloud Supabase
+    insertOrderToDb(newOrder)
+    saveAdminConfigToDb({ menus: updatedMenus })
   }
 
   const handleCancelOrder = (orderId: string) => {
@@ -896,17 +1030,23 @@ export default function App() {
     setMenus(updatedMenus)
     setOrders(orders.map(o => o.id === orderId ? { ...o, orderStatus: 'DIBATALKAN' } : o))
     showToast(`❌ Pesanan #${orderId} telah dibatalkan. Stok telah dikembalikan.`)
+
+    // Update status di Supabase Cloud
+    updateOrderStatusInDb(orderId, 'DIBATALKAN')
+    saveAdminConfigToDb({ menus: updatedMenus })
   }
 
   const handleAdminUpdateOrderStatus = (orderId: string, status: Order['orderStatus']) => {
     setOrders(orders.map(o => o.id === orderId ? { ...o, orderStatus: status } : o))
     showToast(`📦 Status pesanan #${orderId} diperbarui ke: ${status}`)
+    updateOrderStatusInDb(orderId, status)
   }
 
   const handleTogglePaymentStatus = (orderId: string, current: 'UNPAID' | 'PAID') => {
     const nextStatus = current === 'UNPAID' ? 'PAID' : 'UNPAID'
     setOrders(orders.map(o => o.id === orderId ? { ...o, paymentStatus: nextStatus } : o))
     showToast(`💵 Status pembayaran pesanan #${orderId}: ${nextStatus === 'PAID' ? 'LUNAS ✅' : 'BELUM BAYAR ⚠️'}`)
+    updateOrderPaymentInDb(orderId, nextStatus)
   }
 
   // ==========================================
@@ -918,9 +1058,10 @@ export default function App() {
       return
     }
 
+    let updated: MenuItem[]
     if (adminEditingId) {
       // Edit Menu
-      setMenus(menus.map(m => {
+      updated = menus.map(m => {
         if (m.id === adminEditingId) {
           return {
             ...m,
@@ -935,7 +1076,7 @@ export default function App() {
           }
         }
         return m
-      }))
+      })
       showToast('✅ Menu berhasil diperbarui!')
     } else {
       // Tambah Menu Baru
@@ -952,17 +1093,21 @@ export default function App() {
         reviewCount: 0,
         variants: adminFormVariants
       }
-      setMenus([...menus, newMenu])
+      updated = [...menus, newMenu]
       showToast('➕ Menu baru berhasil ditambahkan!')
     }
 
+    setMenus(updated)
+    saveAdminConfigToDb({ menus: updated })
     setIsAdminAddModalOpen(false)
     setAdminEditingId(null)
   }
 
   const handleDeleteMenu = (id: string) => {
     if (window.confirm('Hapus menu ini dari daftar kantin?')) {
-      setMenus(menus.filter(m => m.id !== id))
+      const updated = menus.filter(m => m.id !== id)
+      setMenus(updated)
+      saveAdminConfigToDb({ menus: updated })
       showToast('🗑️ Menu berhasil dihapus.')
     }
   }
@@ -976,25 +1121,29 @@ export default function App() {
       return
     }
 
+    let updatedWidgets: ShowcaseWidget[]
     if (editingWidgetId) {
-      setShowcaseWidgets(showcaseWidgets.map(w => w.id === editingWidgetId ? { ...widgetForm } : w))
+      updatedWidgets = showcaseWidgets.map(w => w.id === editingWidgetId ? { ...widgetForm } : w)
       showToast('✅ Kotak showcase diperbarui!')
     } else {
       const newW: ShowcaseWidget = {
         ...widgetForm,
         id: 'sc_' + Date.now()
       }
-      setShowcaseWidgets([...showcaseWidgets, newW])
+      updatedWidgets = [...showcaseWidgets, newW]
       showToast('➕ Kotak gambar baru berhasil ditambahkan!')
     }
-
+    setShowcaseWidgets(updatedWidgets)
+    saveAdminConfigToDb({ showcase_widgets: updatedWidgets })
     setIsWidgetModalOpen(false)
     setEditingWidgetId(null)
   }
 
   const handleDeleteWidget = (id: string) => {
     if (window.confirm('Hapus kotak gambar ini?')) {
-      setShowcaseWidgets(showcaseWidgets.filter(w => w.id !== id))
+      const updated = showcaseWidgets.filter(w => w.id !== id)
+      setShowcaseWidgets(updated)
+      saveAdminConfigToDb({ showcase_widgets: updated })
       showToast('🗑️ Kotak gambar dihapus.')
     }
   }
@@ -1008,34 +1157,38 @@ export default function App() {
       return
     }
 
+    let updatedAbout: ComprehensiveAbout
     if (editingTeamId) {
-      setAboutData({
+      updatedAbout = {
         ...aboutData,
         team: aboutData.team.map(t => t.id === editingTeamId ? { ...teamForm } : t)
-      })
+      }
       showToast('✅ Data pengembang diperbarui!')
     } else {
       const newMember: DevTeamMember = {
         ...teamForm,
         id: 'team_' + Date.now()
       }
-      setAboutData({
+      updatedAbout = {
         ...aboutData,
         team: [...aboutData.team, newMember]
-      })
+      }
       showToast('➕ Anggota tim baru ditambahkan!')
     }
-
+    setAboutData(updatedAbout)
+    saveAdminConfigToDb({ about_data: updatedAbout })
     setIsTeamModalOpen(false)
     setEditingTeamId(null)
   }
 
   const handleDeleteTeamMember = (id: string) => {
     if (window.confirm('Hapus anggota tim ini?')) {
-      setAboutData({
+      const updatedAbout = {
         ...aboutData,
         team: aboutData.team.filter(t => t.id !== id)
-      })
+      }
+      setAboutData(updatedAbout)
+      saveAdminConfigToDb({ about_data: updatedAbout })
       showToast('🗑️ Anggota tim dihapus.')
     }
   }
@@ -1046,34 +1199,38 @@ export default function App() {
       return
     }
 
+    let updatedAbout: ComprehensiveAbout
     if (editingSocialId) {
-      setAboutData({
+      updatedAbout = {
         ...aboutData,
         socials: aboutData.socials.map(s => s.id === editingSocialId ? { ...socialForm } : s)
-      })
+      }
       showToast('✅ Platform media sosial diperbarui!')
     } else {
       const newSoc: SocialPlatform = {
         ...socialForm,
         id: 'soc_' + Date.now()
       }
-      setAboutData({
+      updatedAbout = {
         ...aboutData,
         socials: [...aboutData.socials, newSoc]
-      })
+      }
       showToast('➕ Media sosial baru ditambahkan!')
     }
-
+    setAboutData(updatedAbout)
+    saveAdminConfigToDb({ about_data: updatedAbout })
     setIsSocialModalOpen(false)
     setEditingSocialId(null)
   }
 
   const handleDeleteSocial = (id: string) => {
     if (window.confirm('Hapus platform media sosial ini?')) {
-      setAboutData({
+      const updatedAbout = {
         ...aboutData,
         socials: aboutData.socials.filter(s => s.id !== id)
-      })
+      }
+      setAboutData(updatedAbout)
+      saveAdminConfigToDb({ about_data: updatedAbout })
       showToast('🗑️ Media sosial dihapus.')
     }
   }
@@ -1102,12 +1259,15 @@ export default function App() {
 
     const updatedReviews = [newRev, ...reviews]
     setReviews(updatedReviews)
+    insertReviewToDb(newRev)
 
     // Recalculate average rating for menu item
     const menuReviews = updatedReviews.filter(r => r.menuId === reviewMenuTarget.id)
     const avgRating = menuReviews.reduce((s, r) => s + r.rating, 0) / menuReviews.length
 
-    setMenus(menus.map(m => m.id === reviewMenuTarget.id ? { ...m, rating: avgRating, reviewCount: menuReviews.length } : m))
+    const updatedMenus = menus.map(m => m.id === reviewMenuTarget.id ? { ...m, rating: avgRating, reviewCount: menuReviews.length } : m)
+    setMenus(updatedMenus)
+    saveAdminConfigToDb({ menus: updatedMenus })
 
     setReviewMenuTarget(null)
     setReviewCommentInput('')
@@ -1213,17 +1373,20 @@ export default function App() {
       alert('Judul poster promo wajib diisi!')
       return
     }
+    let updatedPosters: FoodPoster[]
     if (editingPosterId) {
-      setFoodPosters(foodPosters.map(p => p.id === editingPosterId ? { ...posterForm } : p))
+      updatedPosters = foodPosters.map(p => p.id === editingPosterId ? { ...posterForm } : p)
       showToast('✅ Poster promo makanan berhasil diperbarui!')
     } else {
       const newPoster: FoodPoster = {
         ...posterForm,
         id: 'fp_' + Date.now()
       }
-      setFoodPosters([...foodPosters, newPoster])
+      updatedPosters = [...foodPosters, newPoster]
       showToast('➕ Poster promo baru berhasil ditambahkan!')
     }
+    setFoodPosters(updatedPosters)
+    saveAdminConfigToDb({ food_posters: updatedPosters })
     setIsPosterModalOpen(false)
     setEditingPosterId(null)
   }
@@ -1265,10 +1428,31 @@ export default function App() {
 
       {/* Top Banner Sekolah & Tema Switcher */}
       <div className="ic-top-banner">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, flexWrap: 'wrap' }}>
           <span>{storeIdentity.topBarLeft}</span>
           <span style={{ opacity: 0.5 }}>|</span>
           <span style={{ opacity: 0.9 }}>{storeIdentity.topBarRight}</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            fontSize: '0.72rem',
+            background: isCloudConnected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+            color: isCloudConnected ? '#34d399' : '#fbbf24',
+            padding: '0.15rem 0.55rem',
+            borderRadius: '999px',
+            border: `1px solid ${isCloudConnected ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
+            marginLeft: '0.4rem'
+          }}>
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: isCloudConnected ? '#34d399' : '#fbbf24',
+              boxShadow: isCloudConnected ? '0 0 6px #34d399' : 'none'
+            }} />
+            <span>{isCloudConnected ? '🟢 Cloud Supabase Realtime' : '🟡 Menghubungkan Cloud...'}</span>
+          </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -1568,54 +1752,67 @@ export default function App() {
                   </div>
 
                   {/* Grid Menu Makanan */}
-                  <div className="menu-grid-alt">
-                    {filteredMenus.map(item => (
-                      <div
-                        key={item.id}
-                        className="menu-card-item"
-                        onClick={() => {
-                          setSelectedMenuForDetail(item)
-                          setDetailQty(1)
-                          setDetailSelectedVariants([])
-                          setDetailNotes('')
-                        }}
-                      >
-                        <div className="card-img-wrapper">
-                          {item.imageUrl ? (
-                            <img src={item.imageUrl} alt={item.name} onError={(e) => { (e.target as any).style.display = 'none' }} />
-                          ) : (
-                            <span className="card-img-fallback-emoji">{item.icon}</span>
-                          )}
-                          <span className="card-cat-badge">{item.category}</span>
-                          <span className="card-rating-badge">
-                            ⭐ {item.rating.toFixed(1)} <small style={{ opacity: 0.8 }}>({item.reviewCount})</small>
-                          </span>
-                        </div>
+                  {filteredMenus.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'var(--surface-color)', borderRadius: '24px', border: '1px solid var(--surface-border)', margin: '1rem 0' }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '0.8rem' }}>🍽️</div>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Belum Ada Menu yang Ditambahkan</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '480px', margin: '0.5rem auto 1.5rem', lineHeight: 1.5 }}>
+                        Kantin saat ini masih bersih & kosong. Admin dapat menambahkan hidangan makanan, foto, dan harga melalui Portal Admin.
+                      </p>
+                      <button className="item-order-btn" style={{ margin: '0 auto' }} onClick={() => setIsAdminPasswordModalOpen(true)}>
+                        🔒 Buka Portal Admin untuk Tambah Menu
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="menu-grid-alt">
+                      {filteredMenus.map(item => (
+                        <div
+                          key={item.id}
+                          className="menu-card-item"
+                          onClick={() => {
+                            setSelectedMenuForDetail(item)
+                            setDetailQty(1)
+                            setDetailSelectedVariants([])
+                            setDetailNotes('')
+                          }}
+                        >
+                          <div className="card-img-wrapper">
+                            {item.imageUrl ? (
+                              <img src={item.imageUrl} alt={item.name} onError={(e) => { (e.target as any).style.display = 'none' }} />
+                            ) : (
+                              <span className="card-img-fallback-emoji">{item.icon}</span>
+                            )}
+                            <span className="card-cat-badge">{item.category}</span>
+                            <span className="card-rating-badge">
+                              ⭐ {item.rating.toFixed(1)} <small style={{ opacity: 0.8 }}>({item.reviewCount})</small>
+                            </span>
+                          </div>
 
-                        <div className="card-body-content">
-                          <div className="menu-item-title">{item.name}</div>
-                          <div className="menu-item-desc">{item.description}</div>
+                          <div className="card-body-content">
+                            <div className="menu-item-title">{item.name}</div>
+                            <div className="menu-item-desc">{item.description}</div>
 
-                          <div className="card-footer-action">
-                            <div className="item-price-text">{formatRupiah(item.price)}</div>
-                            <button
-                              className="item-order-btn"
-                              disabled={item.stock <= 0}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedMenuForDetail(item)
-                                setDetailQty(1)
-                                setDetailSelectedVariants([])
-                                setDetailNotes('')
-                              }}
-                            >
-                              + Pesan
-                            </button>
+                            <div className="card-footer-action">
+                              <div className="item-price-text">{formatRupiah(item.price)}</div>
+                              <button
+                                className="item-order-btn"
+                                disabled={item.stock <= 0}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedMenuForDetail(item)
+                                  setDetailQty(1)
+                                  setDetailSelectedVariants([])
+                                  setDetailNotes('')
+                                }}
+                              >
+                                + Pesan
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2453,63 +2650,85 @@ export default function App() {
             {/* TAB ADMIN 3: MENU ITEMS */}
             {adminTab === 'Menu Items' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem' }}>
-                {menus.map(item => (
-                  <div
-                    key={item.id}
-                    className={`menu-card-item admin-interactive-box ${selectedAdminBoxId === item.id ? 'is-selected' : ''}`}
-                    onClick={() => setSelectedAdminBoxId(item.id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="card-img-wrapper">
-                      {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.name} onError={e => { (e.target as any).style.display = 'none' }} />
-                      ) : (
-                        <span className="card-img-fallback-emoji">{item.icon}</span>
-                      )}
-                      <span className="card-cat-badge">{item.category}</span>
-                      <span className="card-rating-badge">⭐ {item.rating.toFixed(1)}</span>
-                    </div>
+                {menus.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3.5rem 1.5rem', background: 'var(--surface-color)', borderRadius: '24px', border: '1px solid var(--surface-border)' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.8rem' }}>🍽️</div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Daftar Menu Masih Kosong</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0.4rem 0 1.25rem' }}>
+                      Kantin saat ini masih bersih & kosong. Klik tombol di bawah untuk menambahkan menu pertama dan mengunggah foto makanan!
+                    </p>
+                    <button
+                      className="item-order-btn"
+                      style={{ margin: '0 auto' }}
+                      onClick={() => {
+                        setAdminEditingId(null)
+                        setAdminMenuForm({ name: '', price: '', category: categories[0] || 'Makanan Berat', icon: '🍲', imageUrl: '', description: '', stock: '40' })
+                        setAdminFormVariants([])
+                        setIsAdminAddModalOpen(true)
+                      }}
+                    >
+                      + Tambah Menu & Upload Foto
+                    </button>
+                  </div>
+                ) : (
+                  menus.map(item => (
+                    <div
+                      key={item.id}
+                      className={`menu-card-item admin-interactive-box ${selectedAdminBoxId === item.id ? 'is-selected' : ''}`}
+                      onClick={() => setSelectedAdminBoxId(item.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="card-img-wrapper">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} onError={e => { (e.target as any).style.display = 'none' }} />
+                        ) : (
+                          <span className="card-img-fallback-emoji">{item.icon}</span>
+                        )}
+                        <span className="card-cat-badge">{item.category}</span>
+                        <span className="card-rating-badge">⭐ {item.rating.toFixed(1)}</span>
+                      </div>
 
-                    <div className="card-body-content">
-                      <div className="menu-item-title">{item.name}</div>
-                      <div className="menu-item-desc">{item.description}</div>
-                      <div style={{ fontSize: '0.85rem', margin: '0.4rem 0', color: 'var(--text-muted)' }}>Stok: <strong>{item.stock} porsi</strong></div>
+                      <div className="card-body-content">
+                        <div className="menu-item-title">{item.name}</div>
+                        <div className="menu-item-desc">{item.description}</div>
+                        <div style={{ fontSize: '0.85rem', margin: '0.4rem 0', color: 'var(--text-muted)' }}>Stok: <strong>{item.stock} porsi</strong></div>
 
-                      <div className="card-footer-action">
-                        <div className="item-price-text">{formatRupiah(item.price)}</div>
-                        <div style={{ display: 'flex', gap: '0.4rem' }}>
-                          <button
-                            className="nav-tool-btn"
-                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
-                            onClick={() => {
-                              setAdminEditingId(item.id)
-                              setAdminMenuForm({
-                                name: item.name,
-                                price: item.price.toString(),
-                                category: item.category,
-                                icon: item.icon,
-                                imageUrl: item.imageUrl || '',
-                                description: item.description || '',
-                                stock: item.stock.toString()
-                              })
-                              setAdminFormVariants(item.variants || [])
-                              setIsAdminAddModalOpen(true)
-                            }}
-                          >
-                            ✏️ Edit
-                          </button>
-                          <button
-                            className="btn-danger"
-                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
-                            onClick={() => handleDeleteMenu(item.id)}
-                          >
-                            🗑️
-                          </button>
+                        <div className="card-footer-action">
+                          <div className="item-price-text">{formatRupiah(item.price)}</div>
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <button
+                              className="nav-tool-btn"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                              onClick={() => {
+                                setAdminEditingId(item.id)
+                                setAdminMenuForm({
+                                  name: item.name,
+                                  price: item.price.toString(),
+                                  category: item.category,
+                                  icon: item.icon,
+                                  imageUrl: item.imageUrl || '',
+                                  description: item.description || '',
+                                  stock: item.stock.toString()
+                                })
+                                setAdminFormVariants(item.variants || [])
+                                setIsAdminAddModalOpen(true)
+                              }}
+                            >
+                              ✏️ Edit
+                            </button>
+                            <button
+                              className="btn-danger"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                              onClick={() => handleDeleteMenu(item.id)}
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
 
@@ -2528,7 +2747,9 @@ export default function App() {
                       if (e.key === 'Enter') {
                         const val = (e.target as HTMLInputElement).value.trim()
                         if (val && !categories.includes(val)) {
-                          setCategories([...categories, val])
+                          const updated = [...categories, val]
+                          setCategories(updated)
+                          saveAdminConfigToDb({ categories: updated })
                             ; (e.target as HTMLInputElement).value = ''
                           showToast(`✅ Kategori "${val}" ditambahkan!`)
                         }
@@ -2542,7 +2763,9 @@ export default function App() {
                       if (input && input.value.trim()) {
                         const val = input.value.trim()
                         if (!categories.includes(val)) {
-                          setCategories([...categories, val])
+                          const updated = [...categories, val]
+                          setCategories(updated)
+                          saveAdminConfigToDb({ categories: updated })
                           input.value = ''
                           showToast(`✅ Kategori "${val}" ditambahkan!`)
                         }
@@ -2570,7 +2793,9 @@ export default function App() {
                             alert('Minimal harus ada 1 kategori!')
                             return
                           }
-                          setCategories(categories.filter(x => x !== c))
+                          const updated = categories.filter(x => x !== c)
+                          setCategories(updated)
+                          saveAdminConfigToDb({ categories: updated })
                           showToast(`🗑️ Kategori "${c}" dihapus.`)
                         }}
                       >
@@ -2593,51 +2818,61 @@ export default function App() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem' }}>
-                  {showcaseWidgets.map(widget => (
-                    <div
-                      key={widget.id}
-                      className={`admin-interactive-box ${selectedAdminBoxId === widget.id ? 'is-selected' : ''}`}
-                      onClick={() => setSelectedAdminBoxId(widget.id)}
-                      style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.25rem' }}
-                    >
-                      <div className={`showcase-widget-card shape-${widget.shape}`} style={{ marginBottom: '1rem' }}>
-                        <div className="showcase-img-box">
-                          <img src={widget.imageUrl} alt={widget.title} />
-                          {widget.priceTag && <span className="showcase-badge-pill">{widget.priceTag}</span>}
-                        </div>
-                        <div className="showcase-info-bar">
-                          <div className="showcase-title-text">{widget.title}</div>
-                          {widget.caption && <div className="showcase-sub-text">{widget.caption}</div>}
-                        </div>
-                      </div>
-
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.85rem' }}>
-                        <div>Bentuk: <strong>{widget.shape}</strong></div>
-                        <div>Posisi: <strong>{widget.position === 'left' ? 'Kiri Banner' : 'Kanan Banner'}</strong></div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          className="nav-tool-btn"
-                          style={{ flex: 1, padding: '0.4rem', justifyContent: 'center' }}
-                          onClick={() => {
-                            setEditingWidgetId(widget.id)
-                            setWidgetForm({ ...widget })
-                            setIsWidgetModalOpen(true)
-                          }}
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          className="btn-danger"
-                          style={{ padding: '0.4rem 0.8rem' }}
-                          onClick={() => handleDeleteWidget(widget.id)}
-                        >
-                          🗑️
-                        </button>
-                      </div>
+                  {showcaseWidgets.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 1.5rem', background: 'var(--surface-color)', borderRadius: '20px', border: '1px solid var(--surface-border)' }}>
+                      <div style={{ fontSize: '2.5rem', marginBottom: '0.6rem' }}>🖼️</div>
+                      <h4>Kotak Gambar Showcase Masih Kosong</h4>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.4rem 0 1rem' }}>
+                        Tambahkan kotak gambar makanan pilihan untuk menghiasi sisi kiri & kanan banner.
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    showcaseWidgets.map(widget => (
+                      <div
+                        key={widget.id}
+                        className={`admin-interactive-box ${selectedAdminBoxId === widget.id ? 'is-selected' : ''}`}
+                        onClick={() => setSelectedAdminBoxId(widget.id)}
+                        style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.25rem' }}
+                      >
+                        <div className={`showcase-widget-card shape-${widget.shape}`} style={{ marginBottom: '1rem' }}>
+                          <div className="showcase-img-box">
+                            <img src={widget.imageUrl} alt={widget.title} />
+                            {widget.priceTag && <span className="showcase-badge-pill">{widget.priceTag}</span>}
+                          </div>
+                          <div className="showcase-info-bar">
+                            <div className="showcase-title-text">{widget.title}</div>
+                            {widget.caption && <div className="showcase-sub-text">{widget.caption}</div>}
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.85rem' }}>
+                          <div>Bentuk: <strong>{widget.shape}</strong></div>
+                          <div>Posisi: <strong>{widget.position === 'left' ? 'Kiri Banner' : 'Kanan Banner'}</strong></div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            className="nav-tool-btn"
+                            style={{ flex: 1, padding: '0.4rem', justifyContent: 'center' }}
+                            onClick={() => {
+                              setEditingWidgetId(widget.id)
+                              setWidgetForm({ ...widget })
+                              setIsWidgetModalOpen(true)
+                            }}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            className="btn-danger"
+                            style={{ padding: '0.4rem 0.8rem' }}
+                            onClick={() => handleDeleteWidget(widget.id)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -2653,74 +2888,88 @@ export default function App() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                  {foodPosters.map(poster => (
-                    <div
-                      key={poster.id}
-                      className={`admin-interactive-box ${selectedAdminBoxId === poster.id ? 'is-selected' : ''}`}
-                      onClick={() => setSelectedAdminBoxId(poster.id)}
-                      style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.25rem' }}
-                    >
-                      <div style={{ position: 'relative', height: '160px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#0b0f19' }}>
-                        <img src={poster.imageUrl} alt={poster.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as any).style.display = 'none' }} />
-                        <span style={{ position: 'absolute', top: '10px', left: '10px', background: poster.badgeColor || '#f43f5e', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 900 }}>
-                          {poster.badgeText}
-                        </span>
-                        <span style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.85)', color: '#38bdf8', padding: '0.2rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800 }}>
-                          {poster.position === 'left' ? '⬅️ Sisi Kiri' : '➡️ Sisi Kanan'}
-                        </span>
-                      </div>
-
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>{poster.title}</h4>
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.6rem', lineHeight: 1.4 }}>{poster.subtitle}</p>
-
-                      <div style={{ fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-                        <span>Harga/Tag: <strong>{poster.priceTag || '-'}</strong></span>
-                        <span style={{ color: poster.isActive ? '#10b981' : '#ef4444', fontWeight: 700 }}>
-                          {poster.isActive ? '✅ Ditampilkan' : '⏸️ Disembunyikan'}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          className="nav-tool-btn"
-                          style={{ flex: 1, padding: '0.45rem', justifyContent: 'center' }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingPosterId(poster.id)
-                            setPosterForm({ ...poster })
-                            setIsPosterModalOpen(true)
-                          }}
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          className="nav-tool-btn"
-                          style={{ padding: '0.45rem 0.75rem', background: poster.isActive ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: poster.isActive ? '#ef4444' : '#10b981' }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setFoodPosters(foodPosters.map(p => p.id === poster.id ? { ...p, isActive: !p.isActive } : p))
-                            showToast(poster.isActive ? '⏸️ Poster dinonaktifkan dari tampilan' : '✅ Poster diaktifkan kembali!')
-                          }}
-                          title={poster.isActive ? 'Sembunyikan' : 'Tampilkan'}
-                        >
-                          {poster.isActive ? 'Sembunyikan' : 'Tampilkan'}
-                        </button>
-                        <button
-                          className="btn-danger"
-                          style={{ padding: '0.45rem 0.75rem' }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (window.confirm('Hapus poster ini?')) {
-                              setFoodPosters(foodPosters.filter(p => p.id !== poster.id))
-                              showToast('🗑️ Poster promo berhasil dihapus.')
-                            }
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      </div>
+                  {foodPosters.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 1.5rem', background: 'var(--surface-color)', borderRadius: '20px', border: '1px solid var(--surface-border)' }}>
+                      <div style={{ fontSize: '2.5rem', marginBottom: '0.6rem' }}>🎨</div>
+                      <h4>Banner Poster Samping Masih Kosong</h4>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.4rem 0 1rem' }}>
+                        Tambahkan banner promo makanan untuk mengisi ruang samping menu.
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    foodPosters.map(poster => (
+                      <div
+                        key={poster.id}
+                        className={`admin-interactive-box ${selectedAdminBoxId === poster.id ? 'is-selected' : ''}`}
+                        onClick={() => setSelectedAdminBoxId(poster.id)}
+                        style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.25rem' }}
+                      >
+                        <div style={{ position: 'relative', height: '160px', borderRadius: '16px', overflow: 'hidden', marginBottom: '1rem', background: '#0b0f19' }}>
+                          <img src={poster.imageUrl} alt={poster.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as any).style.display = 'none' }} />
+                          <span style={{ position: 'absolute', top: '10px', left: '10px', background: poster.badgeColor || '#f43f5e', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 900 }}>
+                            {poster.badgeText}
+                          </span>
+                          <span style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.85)', color: '#38bdf8', padding: '0.2rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800 }}>
+                            {poster.position === 'left' ? '⬅️ Sisi Kiri' : '➡️ Sisi Kanan'}
+                          </span>
+                        </div>
+
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 900, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>{poster.title}</h4>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.6rem', lineHeight: 1.4 }}>{poster.subtitle}</p>
+
+                        <div style={{ fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                          <span>Harga/Tag: <strong>{poster.priceTag || '-'}</strong></span>
+                          <span style={{ color: poster.isActive ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                            {poster.isActive ? '✅ Ditampilkan' : '⏸️ Disembunyikan'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            className="nav-tool-btn"
+                            style={{ flex: 1, padding: '0.45rem', justifyContent: 'center' }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingPosterId(poster.id)
+                              setPosterForm({ ...poster })
+                              setIsPosterModalOpen(true)
+                            }}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            className="nav-tool-btn"
+                            style={{ padding: '0.45rem 0.75rem', background: poster.isActive ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: poster.isActive ? '#ef4444' : '#10b981' }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const updated = foodPosters.map(p => p.id === poster.id ? { ...p, isActive: !p.isActive } : p)
+                              setFoodPosters(updated)
+                              saveAdminConfigToDb({ food_posters: updated })
+                              showToast(poster.isActive ? '⏸️ Poster dinonaktifkan dari tampilan' : '✅ Poster diaktifkan kembali!')
+                            }}
+                            title={poster.isActive ? 'Sembunyikan' : 'Tampilkan'}
+                          >
+                            {poster.isActive ? 'Sembunyikan' : 'Tampilkan'}
+                          </button>
+                          <button
+                            className="btn-danger"
+                            style={{ padding: '0.45rem 0.75rem' }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (window.confirm('Hapus poster ini?')) {
+                                const updated = foodPosters.filter(p => p.id !== poster.id)
+                                setFoodPosters(updated)
+                                saveAdminConfigToDb({ food_posters: updated })
+                                showToast('🗑️ Poster promo berhasil dihapus.')
+                              }
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
