@@ -1068,7 +1068,8 @@ export default function App() {
   // ==========================================
   // ACTIONS: MENU MANAGEMENT & FOTO UPLOAD
   // ==========================================
-  const handleSaveMenu = () => {
+  const handleSaveMenu = async () => {
+
     if (!adminMenuForm.name.trim() || !adminMenuForm.price) {
       alert('Nama dan harga menu wajib diisi!')
       return
@@ -1114,7 +1115,13 @@ export default function App() {
     }
 
     setMenus(updated)
-    saveAdminConfigToDb({ menus: updated })
+    const ok = await saveAdminConfigToDb({ menus: updated })
+    if (ok) {
+      showToast('✅ Menu & keterangan tersimpan permanen ke Cloud!')
+    } else {
+      alert('⚠️ Gagal menyimpan ke Supabase! Cek ukuran foto atau izin tabel admin_config.')
+    }
+
     setIsAdminAddModalOpen(false)
     setAdminEditingId(null)
   }
