@@ -215,7 +215,9 @@ export async function fetchAdminConfigFromDb() {
       console.warn('⚠️ Gagal mengambil admin_config:', error.message)
       return null
     }
-    return data as DbAdminConfig | null
+    // Mendukung baik format objek config (jsonb) maupun kolom langsung
+    const cfg = (data as any)?.config || data
+    return cfg as DbAdminConfig | null
   } catch (err) {
     console.warn('⚠️ Error jaringan admin_config:', err)
     return null
@@ -224,11 +226,25 @@ export async function fetchAdminConfigFromDb() {
 
 export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>) {
   try {
-    const payload = {
+    // Ambil data konfigurasi yang sudah ada agar tidak saling menimpa
+    const { data: existing } = await supabase
+      .from('admin_config')
+      .select('*')
+      .eq('id', 'config')
+      .maybeSingle()
+
+    const currentConfigObj = (existing as any)?.config || (existing as any) || {}
+    const newConfigObj = {
+      ...currentConfigObj,
       ...configData,
-      id: 'config',
       updated_at: new Date().toISOString()
     }
+
+    const payload = {
+      id: 'config',
+      config: newConfigObj
+    }
+
     const { error } = await supabase.from('admin_config').upsert(payload)
     if (error) {
       console.warn('⚠️ Gagal menyimpan admin_config ke Supabase:', error.message)
