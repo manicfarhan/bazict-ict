@@ -123,27 +123,37 @@ export async function insertOrderToDb(order: {
   }
 }
 
-export async function updateOrderStatusInDb(orderId: string, status: string) {
+export async function updateOrderStatusInDb(orderId: string, status: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('orders')
       .update({ order_status: status })
       .eq('id', orderId)
-    if (error) console.warn('⚠️ Gagal update status pesanan:', error.message)
+    if (error) {
+      console.error('❌ Gagal update status pesanan:', error.message)
+      return false
+    }
+    return true
   } catch (err) {
-    console.warn('⚠️ Error update status pesanan:', err)
+    console.error('❌ Error update status pesanan:', err)
+    return false
   }
 }
 
-export async function updateOrderPaymentInDb(orderId: string, paymentStatus: 'UNPAID' | 'PAID') {
+export async function updateOrderPaymentInDb(orderId: string, paymentStatus: 'UNPAID' | 'PAID'): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('orders')
       .update({ payment_status: paymentStatus })
       .eq('id', orderId)
-    if (error) console.warn('⚠️ Gagal update pembayaran pesanan:', error.message)
+    if (error) {
+      console.error('❌ Gagal update pembayaran pesanan:', error.message)
+      return false
+    }
+    return true
   } catch (err) {
-    console.warn('⚠️ Error update pembayaran pesanan:', err)
+    console.error('❌ Error update pembayaran pesanan:', err)
+    return false
   }
 }
 
@@ -159,12 +169,12 @@ export async function fetchReviewsFromDb() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.warn('⚠️ Gagal mengambil ulasan dari Supabase:', error.message)
+      console.error('❌ Gagal mengambil ulasan dari Supabase:', error.message)
       return null
     }
     return data as DbReview[]
   } catch (err) {
-    console.warn('⚠️ Error jaringan Supabase (reviews):', err)
+    console.error('❌ Error jaringan Supabase (reviews):', err)
     return null
   }
 }
@@ -179,7 +189,7 @@ export async function insertReviewToDb(review: {
   rating: number
   comment: string
   createdAt: string
-}) {
+}): Promise<boolean> {
   try {
     const payload: DbReview = {
       id: review.id,
@@ -193,15 +203,23 @@ export async function insertReviewToDb(review: {
       created_at: review.createdAt
     }
     const { error } = await supabase.from('reviews').insert([payload])
-    if (error) console.warn('⚠️ Gagal insert review ke Supabase:', error.message)
+    if (error) {
+      console.error('❌ Gagal insert review ke Supabase:', error.message)
+      return false
+    }
+    return true
   } catch (err) {
-    console.warn('⚠️ Error insert review ke Supabase:', err)
+    console.error('❌ Error insert review ke Supabase:', err)
+    return false
   }
 }
 
 // ==========================================
 // ADMIN CONFIG API (MENUS, CATEGORIES, POSTERS, DESIGN)
 // ==========================================
+
+// Cache lokal di memori agar penyimpanan cepat beruntun tidak saling menimpa
+let cachedAdminConfig: Record<string, any> = {}
 
 export async function fetchAdminConfigFromDb() {
   try {
@@ -212,33 +230,38 @@ export async function fetchAdminConfigFromDb() {
       .maybeSingle()
 
     if (error) {
-      console.warn('⚠️ Gagal mengambil admin_config:', error.message)
+      console.error('❌ Gagal mengambil admin_config:', error.message)
       return null
     }
-    // Mendukung baik format objek config (jsonb) maupun kolom langsung
     const cfg = (data as any)?.config || data
+    if (cfg) {
+      cachedAdminConfig = { ...cachedAdminConfig, ...cfg }
+    }
     return cfg as DbAdminConfig | null
   } catch (err) {
-    console.warn('⚠️ Error jaringan admin_config:', err)
+    console.error('❌ Error jaringan admin_config:', err)
     return null
   }
 }
 
-export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>) {
+export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>): Promise<boolean> {
   try {
-    // Ambil data konfigurasi yang sudah ada agar tidak saling menimpa
+    // Gabungkan dengan cache lokal + data terbaru dari DB agar tidak saling menimpa
     const { data: existing } = await supabase
       .from('admin_config')
       .select('*')
       .eq('id', 'config')
       .maybeSingle()
 
-    const currentConfigObj = (existing as any)?.config || (existing as any) || {}
+    const dbConfigObj = (existing as any)?.config || (existing as any) || {}
     const newConfigObj = {
-      ...currentConfigObj,
+      ...dbConfigObj,
+      ...cachedAdminConfig,
       ...configData,
       updated_at: new Date().toISOString()
     }
+
+    cachedAdminConfig = newConfigObj
 
     const payload = {
       id: 'config',
@@ -247,12 +270,12 @@ export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>) {
 
     const { error } = await supabase.from('admin_config').upsert(payload)
     if (error) {
-      console.warn('⚠️ Gagal menyimpan admin_config ke Supabase:', error.message)
+      console.error('❌ Gagal menyimpan admin_config ke Supabase:', error.message)
       return false
     }
     return true
   } catch (err) {
-    console.warn('⚠️ Error upsert admin_config:', err)
+    console.error('❌ Error upsert admin_config:', err)
     return false
   }
 }

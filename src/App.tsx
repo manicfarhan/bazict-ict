@@ -719,7 +719,7 @@ export default function App() {
   // 2. Sync Ulasan Murid (Realtime)
   const syncReviewsFromCloud = useCallback(async () => {
     const dbReviews = await fetchReviewsFromDb()
-    if (dbReviews && dbReviews.length > 0) {
+    if (dbReviews) {
       setIsCloudConnected(true)
       const mapped: Review[] = dbReviews.map(r => ({
         id: r.id,
@@ -777,7 +777,7 @@ export default function App() {
     }
   }, [])
 
-  // Effect: Sambungkan ke Supabase (Realtime Channel + Interval Polling 3.5 Detik)
+  // Effect: Sambungkan ke Supabase (Realtime Channel + Interval Polling 4 Detik)
   useEffect(() => {
     syncOrdersFromCloud()
     syncConfigFromCloud()
@@ -807,7 +807,8 @@ export default function App() {
     const pollTimer = setInterval(() => {
       syncOrdersFromCloud()
       syncConfigFromCloud()
-    }, 3500)
+      syncReviewsFromCloud()
+    }, 4000)
 
     return () => {
       supabase.removeChannel(ordersSub)
@@ -816,6 +817,21 @@ export default function App() {
       clearInterval(pollTimer)
     }
   }, [syncOrdersFromCloud, syncConfigFromCloud, syncReviewsFromCloud])
+  // Auto-sync ke Supabase saat admin mengedit tampilan/identitas/kategori/tentang
+  useEffect(() => {
+    if (!isCloudConnected) return
+    const timer = setTimeout(() => {
+      saveAdminConfigToDb({
+        store_identity: storeIdentity,
+        canva_design: canvaDesign,
+        categories,
+        hero_badges: heroBadges,
+        about_data: aboutData
+      })
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [storeIdentity, canvaDesign, categories, heroBadges, aboutData, isCloudConnected])
+
 
   // ==========================================
   // CART CALCULATIONS
@@ -1238,7 +1254,7 @@ export default function App() {
   // ==========================================
   // ACTIONS: REVIEWS (GOOGLE MAPS STYLE)
   // ==========================================
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (!reviewMenuTarget || !currentUser) return
     if (!reviewCommentInput.trim()) {
       alert('Tuliskan komentar atau ulasan rasa makanan.')
@@ -1259,20 +1275,30 @@ export default function App() {
 
     const updatedReviews = [newRev, ...reviews]
     setReviews(updatedReviews)
-    insertReviewToDb(newRev)
+    const saved = await insertReviewToDb(newRev)
 
-    // Recalculate average rating for menu item
     const menuReviews = updatedReviews.filter(r => r.menuId === reviewMenuTarget.id)
     const avgRating = menuReviews.reduce((s, r) => s + r.rating, 0) / menuReviews.length
 
-    const updatedMenus = menus.map(m => m.id === reviewMenuTarget.id ? { ...m, rating: avgRating, reviewCount: menuReviews.length } : m)
+    const updatedMenus = menus.map(m =>
+      m.id === reviewMenuTarget.id
+        ? { ...m, rating: Number(avgRating.toFixed(1)), reviewCount: menuReviews.length }
+        : m
+    )
     setMenus(updatedMenus)
-    saveAdminConfigToDb({ menus: updatedMenus })
+    await saveAdminConfigToDb({ menus: updatedMenus })
+
+    if (saved) {
+      await syncReviewsFromCloud()
+      showToast('⭐ Ulasan berhasil dikirim & tersimpan ke Cloud!')
+    } else {
+      showToast('⚠️ Ulasan tersimpan lokal (cek izin RLS tabel reviews di Supabase).')
+    }
 
     setReviewMenuTarget(null)
     setReviewCommentInput('')
-    showToast('⭐ Ulasan berhasil dikirim! Terima kasih atas feedback-nya.')
   }
+
 
   // Left and Right widgets
   const leftWidgets = showcaseWidgets.filter(w => w.position === 'left')
@@ -1297,75 +1323,122 @@ export default function App() {
   }
 
   // Multi-Device Sync Handlers
+
+  const buildFullBackupPayload = () => ({
+    version: '2.0-full',
+    menus,
+    categories,
+    foodPosters,
+    showcaseWidgets,
+    heroBadges,
+    storeIdentity,
+    aboutData,
+    canvaDesign,
+    currentTheme,
+    orders,
+    reviews,
+    timestamp: new Date().toISOString()
+  })
+
   const handleExportSyncData = () => {
-    const exportData = {
-      menus,
-      categories,
-      foodPosters,
-      showcaseWidgets,
-      heroBadges,
-      storeIdentity,
-      timestamp: new Date().toISOString()
-    }
+    const exportData = buildFullBackupPayload()
     const jsonStr = JSON.stringify(exportData, null, 2)
     navigator.clipboard.writeText(jsonStr).then(() => {
-      showToast('📋 Kode data berhasil disalin ke clipboard! Kirim ke temanmu via chat.')
+      showToast('📋 Seluruh data web (Menu, Desain, Tentang, Pesanan & Ulasan) berhasil disalin!')
     }).catch(() => {
-      showToast('ℹ️ Silakan salin teks kode di bawah secara manual.')
+      showToast('ℹ️ Silakan salin teks kode lengkap di bawah secara manual.')
     })
     setSyncCodeOutput(jsonStr)
   }
 
   const handleDownloadBackupFile = () => {
-    const exportData = {
-      menus,
-      categories,
-      foodPosters,
-      showcaseWidgets,
-      heroBadges,
-      storeIdentity,
-      timestamp: new Date().toISOString()
-    }
+    const exportData = buildFullBackupPayload()
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `foodgo_data_menu_${new Date().toISOString().split('T')[0]}.json`
+    a.download = `foodgo_full_backup_${new Date().toISOString().split('T')[0]}.json`
     a.click()
     URL.revokeObjectURL(url)
-    showToast('💾 File backup menu berhasil diunduh!')
+    showToast('💾 File backup LENGKAP semua editan & data berhasil diunduh!')
   }
 
-  const handleImportSyncData = (jsonString: string) => {
+  const handleImportSyncData = async (jsonString: string) => {
     try {
       const data = JSON.parse(jsonString)
       let importedCount = 0
+      const cloudUpdates: Record<string, any> = {}
+
       if (Array.isArray(data.menus)) {
         setMenus(data.menus)
+        cloudUpdates.menus = data.menus
         importedCount += data.menus.length
       }
       if (Array.isArray(data.categories)) {
         setCategories(data.categories)
+        cloudUpdates.categories = data.categories
       }
       if (Array.isArray(data.foodPosters)) {
         setFoodPosters(data.foodPosters)
+        cloudUpdates.food_posters = data.foodPosters
       }
       if (Array.isArray(data.showcaseWidgets)) {
         setShowcaseWidgets(data.showcaseWidgets)
+        cloudUpdates.showcase_widgets = data.showcaseWidgets
       }
       if (Array.isArray(data.heroBadges)) {
         setHeroBadges(data.heroBadges)
+        cloudUpdates.hero_badges = data.heroBadges
       }
-      if (data.storeIdentity) {
-        setStoreIdentity(prev => ({ ...prev, ...data.storeIdentity }))
+      if (data.storeIdentity && typeof data.storeIdentity === 'object') {
+        setStoreIdentity(prev => {
+          const merged = { ...prev, ...data.storeIdentity }
+          cloudUpdates.store_identity = merged
+          return merged
+        })
       }
+      if (data.aboutData && typeof data.aboutData === 'object') {
+        setAboutData(prev => {
+          const merged = { ...prev, ...data.aboutData }
+          cloudUpdates.about_data = merged
+          return merged
+        })
+      }
+      if (data.canvaDesign && typeof data.canvaDesign === 'object') {
+        setCanvaDesign(prev => {
+          const merged = { ...prev, ...data.canvaDesign }
+          cloudUpdates.canva_design = merged
+          return merged
+        })
+      }
+      if (typeof data.currentTheme === 'string') {
+        setCurrentTheme(data.currentTheme)
+      }
+      if (Array.isArray(data.orders)) {
+        setOrders(data.orders)
+        for (const ord of data.orders) {
+          await insertOrderToDb(ord)
+        }
+      }
+      if (Array.isArray(data.reviews)) {
+        setReviews(data.reviews)
+        for (const rev of data.reviews) {
+          await insertReviewToDb(rev)
+        }
+      }
+
+      if (Object.keys(cloudUpdates).length > 0) {
+        await saveAdminConfigToDb(cloudUpdates)
+      }
+
       setIsSyncModalOpen(false)
       setSyncCodeInput('')
-      showToast(`🎉 Berhasil sinkronisasi! ${importedCount} menu & data teman berhasil dimuat ke web ini!`)
+      showToast(`🎉 Berhasil sinkronisasi penuh! ${importedCount} menu & seluruh editan tersimpan ke Cloud!`)
     } catch {
       alert('Format kode tidak valid! Pastikan kamu menyalin seluruh teks kode atau file JSON dengan benar.')
     }
   }
+
 
   // Food Poster Save Handler
   const handleSavePoster = () => {
