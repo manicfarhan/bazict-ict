@@ -425,6 +425,8 @@ export default function App() {
 
   // Admin Navigation Tabs (9 Tabs Komprehensif)
   const [adminTab, setAdminTab] = useState<string>('Dashboard')
+  const [userSearch, setUserSearch] = useState('')
+  const [userFilter, setUserFilter] = useState<'semua' | 'kelas' | 'kamar' | 'angkatan'>('semua')
 
   // Theme Preset (Default: Sleek Cyber Dark Slate)
   const [currentTheme, setCurrentTheme] = useState<string>(() => {
@@ -3515,8 +3517,6 @@ export default function App() {
 
             {/* TAB ADMIN 7: KELOLA TENTANG KAMI & TIM PENGEMBANG (FOTO, VIDEO, TIM, MEDSOS) */}
             {adminTab === 'Daftar Pengguna' && (() => {
-              const [userSearch, setUserSearch] = React.useState('')
-              const [userFilter, setUserFilter] = React.useState<'semua'|'kelas'|'kamar'|'angkatan'>('semua')
               const filtered = users.filter(u => {
                 const q = userSearch.toLowerCase()
                 const matchSearch = !q || u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
@@ -3545,7 +3545,7 @@ export default function App() {
                       onChange={e => setUserSearch(e.target.value)}
                       style={{ flex: 1, minWidth: '180px', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
                     />
-                    {(['semua','kelas','kamar','angkatan'] as const).map(f => (
+                    {(['semua', 'kelas', 'kamar', 'angkatan'] as const).map(f => (
                       <button key={f} onClick={() => setUserFilter(f)} style={{ padding: '0.5rem 1rem', borderRadius: '999px', border: '1px solid var(--surface-border)', background: userFilter === f ? 'var(--primary-color)' : 'var(--surface-card)', color: userFilter === f ? 'var(--text-primary)' : 'var(--text-primary)', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize' }}>
                         {f === 'semua' ? 'Semua' : f === 'kelas' ? 'Per Kelas' : f === 'kamar' ? 'Per Kamar' : 'Per Angkatan'}
                       </button>
@@ -3555,7 +3555,7 @@ export default function App() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--surface-card)', color: 'var(--text-secondary)' }}>
-                          {['Nama Lengkap','Username','Password','Kelas & Kamar','Kapan Dibuat','Terakhir Login','Terakhir Aktif','Aksi'].map(h => (
+                          {['Nama Lengkap', 'Username', 'Password', 'Kelas & Kamar', 'Kapan Dibuat', 'Terakhir Login', 'Terakhir Aktif', 'Aksi'].map(h => (
                             <th key={h} style={{ padding: '0.65rem 0.85rem', textAlign: 'left', borderBottom: '1px solid var(--surface-border)', whiteSpace: 'nowrap' }}>{h}</th>
                           ))}
                         </tr>
