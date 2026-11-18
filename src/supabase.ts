@@ -79,23 +79,35 @@ export async function fetchOrdersFromDb() {
   }
 }
 
+
+
+
 export async function insertOrderToDb(order: {
-  id: string
-  customerName: string
-  customerKelas: string
-  customerKamar: string
-  customerAngkatan: string
-  phone: string
-  items: any[]
-  subtotal: number
-  deliveryFee: number
-  total: number
-  paymentMethod: string
-  paymentStatus: 'UNPAID' | 'PAID'
-  orderStatus: 'DITERIMA' | 'DIMASAK' | 'DIANTAR_KE_KAMAR' | 'SELESAI' | 'DIBATALKAN'
-  createdAt: string
+  id: string;
+  customerName: string;
+  customerKelas: string;
+  customerKamar: string;
+  customerAngkatan?: string;
+  phone: string;
+  items: any[];
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  paymentMethod: string;
+  paymentStatus: 'UNPAID' | 'PAID';
+  orderStatus: 'DITERIMA' | 'DIMASAK' | 'DIANTAR_KE_KAMAR' | 'SELESAI' | 'DIBATALKAN';
+  createdAt?: string;
+  note?: string;
 }) {
   try {
+
+
+    // Ensure each item has buyerName and isPickedUp fields before saving
+    const itemsWithExtras = order.items.map(item => ({
+      ...item,
+      buyerName: item.buyerName ?? item.buyerName ?? '',
+      isPickedUp: item.isPickedUp ?? false
+    }));
     const payload: DbOrder = {
       id: order.id,
       customer_name: order.customerName,
@@ -103,43 +115,53 @@ export async function insertOrderToDb(order: {
       customer_kamar: order.customerKamar,
       customer_angkatan: order.customerAngkatan,
       phone: order.phone,
-      items: order.items,
+      items: itemsWithExtras,
       subtotal: order.subtotal,
       delivery_fee: order.deliveryFee,
       total: order.total,
       payment_method: order.paymentMethod,
       payment_status: order.paymentStatus,
       order_status: order.orderStatus,
-      created_at: order.createdAt
-    }
-    const { error } = await supabase.from('orders').insert([payload])
+      created_at: order.createdAt || new Date().toISOString()
+    };
+    const { error } = await supabase.from('orders').insert([payload]);
     if (error) {
-      console.error('❌ Gagal menyimpan pesanan ke Supabase:', error.message)
-      return false
+      console.error('❌ Gagal menyimpan pesanan ke Supabase:', error.message);
+      return false;
     }
-    return true
+    return true;
   } catch (err) {
-    console.error('❌ Error koneksi Supabase insert order:', err)
-    return false
+    console.error('❌ Error koneksi Supabase insert order:', err);
+    return false;
   }
 }
 
 export async function updateOrderStatusInDb(orderId: string, status: string): Promise<boolean> {
   try {
+    const updateData: any = { order_status: status };
+    // If order is completed, add completedAt timestamp (stored inside items JSON if needed)
+    if (status === 'SELESAI') {
+      updateData.completedAt = new Date().toISOString();
+    }
     const { error } = await supabase
       .from('orders')
-      .update({ order_status: status })
-      .eq('id', orderId)
+      .update(updateData)
+      .eq('id', orderId);
     if (error) {
-      console.error('❌ Gagal update status pesanan:', error.message)
-      return false
+      console.error('❌ Gagal update status pesanan:', error.message);
+      return false;
     }
-    return true
+    return true;
   } catch (err) {
-    console.error('❌ Error update status pesanan:', err)
-    return false
+    console.error('❌ Error update status pesanan:', err);
+    return false;
   }
 }
+
+
+
+
+
 
 export async function updateOrderPaymentInDb(orderId: string, paymentStatus: 'UNPAID' | 'PAID'): Promise<boolean> {
   try {
@@ -246,7 +268,7 @@ export async function fetchAdminConfigFromDb() {
 }
 
 export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>): Promise<boolean> {
-  ;(window as any).__lastAdminSave = Date.now();
+  ; (window as any).__lastAdminSave = Date.now();
   try {
     // Gabungkan dengan cache lokal + data terbaru dari DB agar tidak saling menimpa
     const { data: existing } = await supabase

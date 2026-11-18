@@ -788,6 +788,8 @@ export default function App() {
   // ==========================================
   // 1. Sync Pesanan Masuk (Realtime)
   const syncOrdersFromCloud = useCallback(async () => {
+    // Anti-overwrite guard: avoid overwriting recent local edits (within 20s)
+    if (Date.now() - lastLocalEditRef.current < 20000) return;
     const dbOrders = await fetchOrdersFromDb()
     if (dbOrders) {
       setIsCloudConnected(true)
@@ -798,7 +800,13 @@ export default function App() {
         customerKamar: row.customer_kamar || '',
         customerAngkatan: row.customer_angkatan || '',
         phone: row.phone || '',
-        items: Array.isArray(row.items) ? row.items : [],
+        items: Array.isArray(row.items)
+          ? row.items.map(item => ({
+            ...item,
+            buyerName: item.buyerName ?? '',
+            isPickedUp: item.isPickedUp ?? false
+          }))
+          : [],
         subtotal: Number(row.subtotal) || 0,
         deliveryFee: Number(row.delivery_fee) || 0,
         total: Number(row.total) || 0,
@@ -838,7 +846,7 @@ export default function App() {
     // Hindari menimpa state saat admin sedang membuka modal tambah/edit
     if (isAdminAddModalOpen || isWidgetModalOpen || isPosterModalOpen || isTeamModalOpen || isSocialModalOpen || isBadgeModalOpen) return
     // Hindari menimpa perubahan lokal yang baru saja dibuat (dalam 10 detik terakhir)
-    if ((Date.now() - lastLocalEditRef.current < 15000 || Date.now() - ((window as any).__lastAdminSave || 0) < 15000)) return
+    if ((Date.now() - lastLocalEditRef.current < 20000 || Date.now() - ((window as any).__lastAdminSave || 0) < 20000)) return
     const config = await fetchAdminConfigFromDb()
     if (config) {
       setIsCloudConnected(true)
@@ -846,7 +854,7 @@ export default function App() {
         setMenus(config.menus)
         localStorage.setItem('ic_menus', JSON.stringify(config.menus))
       }
-      if (Array.isArray(config.categories) && config.categories.length > 0) {
+      if (Array.isArray(config.categories)) {
         setCategories(config.categories)
         localStorage.setItem('ic_categories', JSON.stringify(config.categories))
       }
@@ -938,16 +946,29 @@ export default function App() {
     if (!isCloudConnected) return
     const timer = setTimeout(() => {
       lastLocalEditRef.current = Date.now()
+      // Persist collections to localStorage before syncing to Supabase
+      localStorage.setItem('ic_menus', JSON.stringify(menus))
+      localStorage.setItem('ic_categories', JSON.stringify(categories))
+      localStorage.setItem('ic_showcase_widgets', JSON.stringify(showcaseWidgets))
+      localStorage.setItem('ic_food_posters', JSON.stringify(foodPosters))
+      localStorage.setItem('ic_hero_badges', JSON.stringify(heroBadges))
+      localStorage.setItem('ic_store_identity', JSON.stringify(storeIdentity))
+      localStorage.setItem('ic_about_comprehensive', JSON.stringify(aboutData))
+      localStorage.setItem('ic_users', JSON.stringify(users))
       saveAdminConfigToDb({
         store_identity: storeIdentity,
         canva_design: canvaDesign,
+        menus,
         categories,
+        showcase_widgets: showcaseWidgets,
+        food_posters: foodPosters,
         hero_badges: heroBadges,
-        about_data: aboutData
+        about_data: aboutData,
+        users
       })
     }, 800)
     return () => clearTimeout(timer)
-  }, [storeIdentity, canvaDesign, categories, heroBadges, aboutData, isCloudConnected])
+  }, [menus, storeIdentity, canvaDesign, categories, showcaseWidgets, foodPosters, heroBadges, aboutData, users, isCloudConnected])
 
 
 
