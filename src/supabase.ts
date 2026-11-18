@@ -246,6 +246,7 @@ export async function fetchAdminConfigFromDb() {
 }
 
 export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>): Promise<boolean> {
+  ;(window as any).__lastAdminSave = Date.now();
   try {
     // Gabungkan dengan cache lokal + data terbaru dari DB agar tidak saling menimpa
     const { data: existing } = await supabase

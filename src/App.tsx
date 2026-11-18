@@ -838,7 +838,7 @@ export default function App() {
     // Hindari menimpa state saat admin sedang membuka modal tambah/edit
     if (isAdminAddModalOpen || isWidgetModalOpen || isPosterModalOpen || isTeamModalOpen || isSocialModalOpen || isBadgeModalOpen) return
     // Hindari menimpa perubahan lokal yang baru saja dibuat (dalam 10 detik terakhir)
-    if (Date.now() - lastLocalEditRef.current < 10000) return
+    if ((Date.now() - lastLocalEditRef.current < 15000 || Date.now() - ((window as any).__lastAdminSave || 0) < 15000)) return
     const config = await fetchAdminConfigFromDb()
     if (config) {
       setIsCloudConnected(true)
@@ -937,6 +937,7 @@ export default function App() {
   useEffect(() => {
     if (!isCloudConnected) return
     const timer = setTimeout(() => {
+      lastLocalEditRef.current = Date.now()
       saveAdminConfigToDb({
         store_identity: storeIdentity,
         canva_design: canvaDesign,
@@ -947,6 +948,7 @@ export default function App() {
     }, 800)
     return () => clearTimeout(timer)
   }, [storeIdentity, canvaDesign, categories, heroBadges, aboutData, isCloudConnected])
+
 
 
   // ==========================================
