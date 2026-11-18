@@ -42,6 +42,7 @@ export interface DbReview {
 }
 
 export interface DbAdminConfig {
+  users?: any
   id: string
   menus?: any
   categories?: any

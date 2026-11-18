@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import {
   supabase,
@@ -39,7 +39,7 @@ const readFileAsDataUrl = (file: File): Promise<string> => {
 
 export const THEMES = [
   { id: 'midnight', name: '🌙 Sleek Cyber Dark Slate (Default)', color: '#0f172a' },
-  { id: 'kiosk-light', name: '🍟 Kiosk Clean (Terang)', color: '#ffffff' },
+  { id: 'kiosk-light', name: '🍟 Kiosk Clean (Terang)', color: 'var(--text-primary)' },
   { id: 'pink', name: '🌸 Sakura Pink (Perempuan)', color: '#ec4899' },
   { id: 'blue', name: '🌊 Ocean Blue', color: '#0284c7' },
   { id: 'emerald', name: '🌲 Emerald Cendikia', color: '#059669' },
@@ -124,6 +124,9 @@ export interface CustomerUser {
   angkatan: string
   phone: string
   avatar: string
+  createdAt?: string
+  lastLoginAt?: string
+  lastActiveAt?: string
 }
 
 // Model Tim Pengembang (Identitas, Foto, Role, Kelas)
@@ -482,6 +485,9 @@ export default function App() {
     return getCleanStorage('ic_users', INITIAL_USERS)
   })
 
+  // Ref: timestamp edit lokal terakhir untuk mencegah polling menimpa perubahan user
+  const lastLocalEditRef = useRef<number>(0)
+
   // Categories
   const [categories, setCategories] = useState<string[]>(() => {
     return getCleanStorage('ic_categories', INITIAL_CATEGORIES)
@@ -829,6 +835,8 @@ export default function App() {
   const syncConfigFromCloud = useCallback(async () => {
     // Hindari menimpa state saat admin sedang membuka modal tambah/edit
     if (isAdminAddModalOpen || isWidgetModalOpen || isPosterModalOpen || isTeamModalOpen || isSocialModalOpen || isBadgeModalOpen) return
+    // Hindari menimpa perubahan lokal yang baru saja dibuat (dalam 10 detik terakhir)
+    if (Date.now() - lastLocalEditRef.current < 10000) return
     const config = await fetchAdminConfigFromDb()
     if (config) {
       setIsCloudConnected(true)
@@ -875,6 +883,10 @@ export default function App() {
       if (config.canva_design && typeof config.canva_design === 'object' && Object.keys(config.canva_design).length > 0) {
         setCanvaDesign(prev => ({ ...prev, ...config.canva_design }))
         localStorage.setItem('ic_canva_design', JSON.stringify(config.canva_design))
+      }
+      if (Array.isArray(config.users) && config.users.length > 0) {
+        setUsers(config.users)
+        localStorage.setItem('ic_users', JSON.stringify(config.users))
       }
     }
   }, [isAdminAddModalOpen, isWidgetModalOpen, isPosterModalOpen, isTeamModalOpen, isSocialModalOpen, isBadgeModalOpen])
@@ -979,7 +991,15 @@ export default function App() {
       alert('Username atau password tidak sesuai! Silakan daftar jika belum punya akun.')
       return
     }
-    setCurrentUser(found)
+    const now = new Date().toISOString()
+    const updatedUsers = users.map(u =>
+      u.username === found.username ? { ...u, lastLoginAt: now, lastActiveAt: now } : u
+    )
+    lastLocalEditRef.current = Date.now()
+    setUsers(updatedUsers)
+    localStorage.setItem('ic_users', JSON.stringify(updatedUsers))
+    saveAdminConfigToDb({ users: updatedUsers } as any)
+    setCurrentUser({ ...found, lastLoginAt: now, lastActiveAt: now })
     setIsAuthModalOpen(false)
     showToast(`👋 Selamat datang kembali, ${found.name.split(' ')[0]}!`)
   }
@@ -1003,11 +1023,17 @@ export default function App() {
       kamar: registerForm.kamar.trim(),
       angkatan: registerForm.angkatan.trim(),
       phone: registerForm.phone.trim() || '-',
-      avatar: '🎓'
+      avatar: '🎓',
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString()
     }
 
     const updatedUsers = [...users, newUser]
+    lastLocalEditRef.current = Date.now()
     setUsers(updatedUsers)
+    localStorage.setItem('ic_users', JSON.stringify(updatedUsers))
+    saveAdminConfigToDb({ users: updatedUsers } as any)
     setCurrentUser(newUser)
     setIsAuthModalOpen(false)
     setRegisterForm({ username: '', password: '', name: '', kelas: '', kamar: '', angkatan: '', phone: '' })
@@ -1630,7 +1656,7 @@ export default function App() {
 
       {/* Custom Announcement Bar (Ala Canva Studio) */}
       {canvaDesign.showCustomAnnouncement && (
-        <div className="custom-announcement-bar" style={{ background: canvaDesign.announcementBg, color: '#ffffff' }}>
+        <div className="custom-announcement-bar" style={{ background: canvaDesign.announcementBg, color: 'var(--text-primary)' }}>
           <span>📢</span>
           <span>{canvaDesign.customAnnouncementText}</span>
         </div>
@@ -1706,7 +1732,7 @@ export default function App() {
                   marginLeft: '0.35rem',
                   background: 'linear-gradient(135deg, rgba(244,63,94,0.35), rgba(124,58,237,0.35))',
                   border: '1px solid rgba(255,255,255,0.3)',
-                  color: '#ffffff'
+                  color: 'var(--text-primary)'
                 }}
                 onClick={() => setIsCustomerCanvaModalOpen(true)}
                 title="Buka Canva Studio untuk ganti background, warna kartu & font di perangkat ini"
@@ -2039,7 +2065,7 @@ export default function App() {
                                       : isPassed
                                         ? 'rgba(16, 185, 129, 0.25)'
                                         : 'var(--surface-card)',
-                                    color: isCurrent ? '#ffffff' : isPassed ? '#10b981' : 'var(--text-muted)',
+                                    color: isCurrent ? 'var(--text-primary)' : isPassed ? '#10b981' : 'var(--text-muted)',
                                     border: isCurrent
                                       ? '2px solid #ffffff'
                                       : isPassed
@@ -2062,7 +2088,7 @@ export default function App() {
                                   <span style={{
                                     fontSize: '0.68rem',
                                     background: 'var(--primary-color)',
-                                    color: '#ffffff',
+                                    color: 'var(--text-primary)',
                                     padding: '0.1rem 0.45rem',
                                     borderRadius: '999px',
                                     fontWeight: 700
@@ -2799,6 +2825,7 @@ export default function App() {
                 { name: 'Kotak Gambar & Showcase', icon: '🖼️' },
                 { name: 'Banner Poster Samping (Maximalism)', icon: '🎨' },
                 { name: 'Ulasan Murid', icon: '⭐' },
+                { name: 'Daftar Pengguna', icon: '👥' },
                 { name: 'Kelola Tentang Kami & Tim', icon: 'ℹ️' },
                 { name: 'Studio Desain (Ala Canva)', icon: '✨' },
                 { name: 'Pengaturan Toko & Teks Hero', icon: '⚙️' }
@@ -3485,6 +3512,83 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* TAB ADMIN 7: KELOLA TENTANG KAMI & TIM PENGEMBANG (FOTO, VIDEO, TIM, MEDSOS) */}
+            {adminTab === 'Daftar Pengguna' && (() => {
+              const [userSearch, setUserSearch] = React.useState('')
+              const [userFilter, setUserFilter] = React.useState<'semua'|'kelas'|'kamar'|'angkatan'>('semua')
+              const filtered = users.filter(u => {
+                const q = userSearch.toLowerCase()
+                const matchSearch = !q || u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
+                return matchSearch
+              })
+              const handleDeleteUser = (username: string) => {
+                if (!window.confirm(`Hapus akun "${username}"?`)) return
+                lastLocalEditRef.current = Date.now()
+                const updated = users.filter(u => u.username !== username)
+                setUsers(updated)
+                localStorage.setItem('ic_users', JSON.stringify(updated))
+                saveAdminConfigToDb({ users: updated } as any)
+              }
+              const fmt = (ts?: string) => ts ? new Date(ts).toLocaleString('id-ID') : '—'
+              return (
+                <div style={{ background: 'var(--surface-color)', borderRadius: '24px', padding: '2rem', border: '1px solid var(--surface-border)' }}>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>👥 Daftar Pengguna Terdaftar</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                    Total {users.length} akun murid terdaftar.
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      placeholder="Cari nama / username..."
+                      value={userSearch}
+                      onChange={e => setUserSearch(e.target.value)}
+                      style={{ flex: 1, minWidth: '180px', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                    />
+                    {(['semua','kelas','kamar','angkatan'] as const).map(f => (
+                      <button key={f} onClick={() => setUserFilter(f)} style={{ padding: '0.5rem 1rem', borderRadius: '999px', border: '1px solid var(--surface-border)', background: userFilter === f ? 'var(--primary-color)' : 'var(--surface-card)', color: userFilter === f ? 'var(--text-primary)' : 'var(--text-primary)', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize' }}>
+                        {f === 'semua' ? 'Semua' : f === 'kelas' ? 'Per Kelas' : f === 'kamar' ? 'Per Kamar' : 'Per Angkatan'}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-card)', color: 'var(--text-secondary)' }}>
+                          {['Nama Lengkap','Username','Password','Kelas & Kamar','Kapan Dibuat','Terakhir Login','Terakhir Aktif','Aksi'].map(h => (
+                            <th key={h} style={{ padding: '0.65rem 0.85rem', textAlign: 'left', borderBottom: '1px solid var(--surface-border)', whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.length === 0 && (
+                          <tr><td colSpan={8} style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>Tidak ada pengguna ditemukan.</td></tr>
+                        )}
+                        {filtered
+                          .filter(() => {
+                            if (userFilter === 'semua') return true
+                            return true // placeholder – filter by kelas/kamar/angkatan via search for now
+                          })
+                          .map((u, i) => (
+                            <tr key={u.username} style={{ background: i % 2 === 0 ? 'var(--surface-card)' : 'transparent' }}>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-primary)', fontWeight: 700 }}>{u.name || '—'}</td>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-secondary)' }}>{u.username}</td>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{u.password}</td>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-secondary)' }}>{u.kelas} · {u.kamar}</td>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmt(u.createdAt) || 'Akun Bawaan'}</td>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmt(u.lastLoginAt)}</td>
+                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmt(u.lastActiveAt)}</td>
+                              <td style={{ padding: '0.65rem 0.85rem' }}>
+                                <button onClick={() => handleDeleteUser(u.username)} style={{ background: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.35rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>Hapus</button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* TAB ADMIN 7: KELOLA TENTANG KAMI & TIM PENGEMBANG (FOTO, VIDEO, TIM, MEDSOS) */}
             {adminTab === 'Kelola Tentang Kami & Tim' && (
@@ -4431,7 +4535,7 @@ export default function App() {
                         }}
                         style={{
                           background: g.val,
-                          color: '#ffffff',
+                          color: 'var(--text-primary)',
                           padding: '0.55rem',
                           borderRadius: '10px',
                           border: customerCanvaDesign.bgGradient === g.val ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.2)',
