@@ -227,6 +227,64 @@ export interface CanvaDesignConfig {
   announcementBg: string
 }
 
+export const THEME_PRESETS: Record<string, Partial<CanvaDesignConfig>> = {
+  midnight: {
+    bgType: 'color',
+    bgColor: '#0f172a',
+    surfaceColor: '#1e293b',
+    surfaceCard: '#334155',
+    surfaceBorder: '#475569',
+    primaryColor: '#f43f5e',
+    textPrimary: '#f8fafc',
+    textSecondary: '#cbd5e1',
+    fontFamily: 'outfit'
+  },
+  'kiosk-light': {
+    bgType: 'color',
+    bgColor: '#f8fafc',
+    surfaceColor: '#ffffff',
+    surfaceCard: '#ffffff',
+    surfaceBorder: '#e2e8f0',
+    primaryColor: '#f43f5e',
+    textPrimary: '#0f172a',
+    textSecondary: '#475569',
+    fontFamily: 'sans'
+  },
+  pink: {
+    bgType: 'color',
+    bgColor: '#fdf2f8',
+    surfaceColor: '#ffffff',
+    surfaceCard: '#fff1f2',
+    surfaceBorder: '#fbcfe8',
+    primaryColor: '#ec4899',
+    textPrimary: '#831843',
+    textSecondary: '#9d174d',
+    fontFamily: 'poppins'
+  },
+  blue: {
+    bgType: 'color',
+    bgColor: '#f0f9ff',
+    surfaceColor: '#ffffff',
+    surfaceCard: '#e0f2fe',
+    surfaceBorder: '#bae6fd',
+    primaryColor: '#0284c7',
+    textPrimary: '#0c4a6e',
+    textSecondary: '#0369a1',
+    fontFamily: 'sans'
+  },
+  emerald: {
+    bgType: 'color',
+    bgColor: '#f0fdf4',
+    surfaceColor: '#ffffff',
+    surfaceCard: '#dcfce7',
+    surfaceBorder: '#bbf7d0',
+    primaryColor: '#059669',
+    textPrimary: '#064e3b',
+    textSecondary: '#065f46',
+    fontFamily: 'outfit'
+  }
+}
+
 // ==========================================
 // DEFAULT INITIAL DATA (PURE KOSONG - ADMIN MENGISI DARI AWAL)
 // ==========================================
@@ -281,11 +339,11 @@ const INITIAL_CATEGORIES: string[] = ['Makanan Berat', 'Camilan', 'Minuman']
 const INITIAL_STORE_IDENTITY: StoreIdentity = {
   topBarLeft: '🏫 MAN Insan Cendekia Tanah Laut',
   topBarRight: '🍱 Kantin Asrama & Pengantaran Kamar',
-  brandName: 'IC-Bites',
+  brandName: 'ICT-Go',
   brandSuffix: 'Tala',
   brandSubtitle: 'Kantin Asrama MAN IC Tanah Laut',
   logoEmoji: '🍟',
-  heroTitle: 'Selamat Datang di Kantin Asrama MAN IC Tala 🍱',
+  heroTitle: 'Lapar Setelah Aktivitas & Belajar? Pesan Sekarang di ICT-Go! 🍱',
   heroDescription: 'Layanan resmi pemesanan makanan & minuman higienis kantin asrama MAN Insan Cendekia Tanah Laut. Diantar langsung ke lobi asrama putra dan asrama putri.',
   heroFeatures: [
     '⚡ Antar Langsung ke Kamar Asrama',
@@ -314,8 +372,8 @@ const INITIAL_SOCIALS: SocialPlatform[] = []
 
 // Tentang Kami Default
 const INITIAL_ABOUT_DATA: ComprehensiveAbout = {
-  title: 'Tentang IC-Bites MAN Insan Cendekia Tanah Laut',
-  history: 'IC-Bites Tala adalah platform pemesanan makanan mandiri yang diinisiasi dan dikembangkan oleh murid MAN Insan Cendekia Tanah Laut. Terinspirasi dari kehidupan asrama yang dinamis dan padat kegiatan belajar, sistem ini menghubungkan dapur kantin dengan asrama putra dan putri secara rapi, cepat, dan transparan.',
+  title: 'Tentang ICT-Go MAN Insan Cendekia Tanah Laut',
+  history: 'ICT-Go Tala adalah platform pemesanan makanan mandiri yang diinisiasi dan dikembangkan oleh murid MAN Insan Cendekia Tanah Laut. Terinspirasi dari kehidupan asrama yang dinamis dan padat kegiatan belajar, sistem ini menghubungkan dapur kantin dengan asrama putra dan putri secara rapi, cepat, dan transparan.',
   visionMission: 'Visi kami adalah menciptakan layanan kantin asrama berbasis digital yang higienis, terjangkau, dan memudahkan seluruh murid tanpa harus keluar area kampus.',
   galleryImages: [],
   videoUrl: '',
@@ -359,8 +417,8 @@ export default function App() {
     return (localStorage.getItem('ic_view_role') as any) || 'customer'
   })
 
-  // Customer Navigation: 'menu' | 'history' | 'about' | 'cart'
-  const [customerTab, setCustomerTab] = useState<'menu' | 'history' | 'about' | 'cart'>('menu')
+  // Customer Navigation: 'menu' | 'history' | 'about' | 'cart' | 'reviews'
+  const [customerTab, setCustomerTab] = useState<'menu' | 'history' | 'about' | 'cart' | 'reviews'>('menu')
 
   // Admin Navigation Tabs (9 Tabs Komprehensif)
   const [adminTab, setAdminTab] = useState<string>('Dashboard')
@@ -447,7 +505,17 @@ export default function App() {
   // Store Identity & Header Info (Semua bisa diedit admin)
   const [storeIdentity, setStoreIdentity] = useState<StoreIdentity>(() => {
     const saved = localStorage.getItem('ic_store_identity')
-    return saved ? JSON.parse(saved) : INITIAL_STORE_IDENTITY
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed.brandName === 'IC-Bites') parsed.brandName = 'ICT-Go'
+        if (parsed.heroTitle && parsed.heroTitle.includes('IC-Bites')) {
+          parsed.heroTitle = parsed.heroTitle.replace(/IC-Bites/g, 'ICT-Go')
+        }
+        return { ...INITIAL_STORE_IDENTITY, ...parsed }
+      } catch { }
+    }
+    return INITIAL_STORE_IDENTITY
   })
 
   // Hero Badges / Bubble Stickers (Bisa ditambah & diedit admin)
@@ -462,13 +530,33 @@ export default function App() {
 
   // Tentang Kami Komprehensif
   const [aboutData, setAboutData] = useState<ComprehensiveAbout>(() => {
-    return getCleanStorage('ic_about_comprehensive', INITIAL_ABOUT_DATA)
+    const val = getCleanStorage('ic_about_comprehensive', INITIAL_ABOUT_DATA)
+    if (val) {
+      if (val.title && val.title.includes('IC-Bites')) val.title = val.title.replace(/IC-Bites/g, 'ICT-Go')
+      if (val.history && val.history.includes('IC-Bites')) val.history = val.history.replace(/IC-Bites/g, 'ICT-Go')
+    }
+    return val
   })
 
   // Status Koneksi Cloud Supabase Realtime
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false)
 
-  // Canva-style Design Studio Config
+  // Customer Canva Design (Tersimpan HANYA di perangkat pembeli / localStorage, TIDAK mengubah perangkat lain)
+  const [customerCanvaDesign, setCustomerCanvaDesign] = useState<CanvaDesignConfig>(() => {
+    const saved = localStorage.getItem('ic_customer_canva')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        return { ...INITIAL_CANVA_DESIGN, ...parsed }
+      } catch { }
+    }
+    return INITIAL_CANVA_DESIGN
+  })
+
+  // Modal Studio Desain Ala Canva untuk Pembeli (Per-device saja)
+  const [isCustomerCanvaModalOpen, setIsCustomerCanvaModalOpen] = useState<boolean>(false)
+
+  // Canva-style Design Studio Config (Untuk Admin / Default Cloud)
   const [canvaDesign, setCanvaDesign] = useState<CanvaDesignConfig>(() => {
     const saved = localStorage.getItem('ic_canva_design')
     if (saved) {
@@ -739,6 +827,8 @@ export default function App() {
 
   // 3. Sync Pengaturan Admin & Menu dari Supabase
   const syncConfigFromCloud = useCallback(async () => {
+    // Hindari menimpa state saat admin sedang membuka modal tambah/edit
+    if (isAdminAddModalOpen || isWidgetModalOpen || isPosterModalOpen || isTeamModalOpen || isSocialModalOpen || isBadgeModalOpen) return
     const config = await fetchAdminConfigFromDb()
     if (config) {
       setIsCloudConnected(true)
@@ -763,19 +853,31 @@ export default function App() {
         localStorage.setItem('ic_hero_badges', JSON.stringify(config.hero_badges))
       }
       if (config.store_identity && typeof config.store_identity === 'object' && Object.keys(config.store_identity).length > 0) {
-        setStoreIdentity(prev => ({ ...prev, ...config.store_identity }))
-        localStorage.setItem('ic_store_identity', JSON.stringify(config.store_identity))
+        const iden = { ...config.store_identity }
+        if (iden.brandName === 'IC-Bites') iden.brandName = 'ICT-Go'
+        if (iden.heroTitle && iden.heroTitle.includes('IC-Bites')) {
+          iden.heroTitle = iden.heroTitle.replace(/IC-Bites/g, 'ICT-Go')
+        }
+        setStoreIdentity(prev => ({ ...prev, ...iden }))
+        localStorage.setItem('ic_store_identity', JSON.stringify(iden))
       }
       if (config.about_data && typeof config.about_data === 'object' && Object.keys(config.about_data).length > 0) {
-        setAboutData(prev => ({ ...prev, ...config.about_data }))
-        localStorage.setItem('ic_about_comprehensive', JSON.stringify(config.about_data))
+        const abt = { ...config.about_data }
+        if (abt.title && abt.title.includes('IC-Bites')) {
+          abt.title = abt.title.replace(/IC-Bites/g, 'ICT-Go')
+        }
+        if (abt.history && abt.history.includes('IC-Bites')) {
+          abt.history = abt.history.replace(/IC-Bites/g, 'ICT-Go')
+        }
+        setAboutData(prev => ({ ...prev, ...abt }))
+        localStorage.setItem('ic_about_comprehensive', JSON.stringify(abt))
       }
       if (config.canva_design && typeof config.canva_design === 'object' && Object.keys(config.canva_design).length > 0) {
         setCanvaDesign(prev => ({ ...prev, ...config.canva_design }))
         localStorage.setItem('ic_canva_design', JSON.stringify(config.canva_design))
       }
     }
-  }, [])
+  }, [isAdminAddModalOpen, isWidgetModalOpen, isPosterModalOpen, isTeamModalOpen, isSocialModalOpen, isBadgeModalOpen])
 
   // Effect: Sambungkan ke Supabase (Realtime Channel + Interval Polling 4 Detik)
   useEffect(() => {
@@ -1019,6 +1121,7 @@ export default function App() {
 
     setMenus(updatedMenus)
     setOrders([newOrder, ...orders])
+    localStorage.setItem('ic_last_order_id', newOrder.id)
     setCart([])
     setCustomerTab('history')
     showToast(`🚀 Pesanan #${newOrder.id} berhasil dikirim ke dapur kantin!`)
@@ -1471,26 +1574,53 @@ export default function App() {
     setEditingPosterId(null)
   }
 
-  // Inline dynamic CSS Variables based on Canva Studio configuration
+  // Helper ganti tema cepat (Preset)
+  const handleApplyTheme = (themeId: string) => {
+    setCurrentTheme(themeId)
+    const preset = THEME_PRESETS[themeId]
+    if (!preset) return
+
+    if (viewRole === 'customer') {
+      const updated: CanvaDesignConfig = {
+        ...customerCanvaDesign,
+        ...preset
+      }
+      setCustomerCanvaDesign(updated)
+      localStorage.setItem('ic_customer_canva', JSON.stringify(updated))
+      showToast(`🎨 Tema berganti ke: ${themeId} (Khusus perangkatmu)!`)
+    } else {
+      const updated: CanvaDesignConfig = {
+        ...canvaDesign,
+        ...preset
+      }
+      setCanvaDesign(updated)
+      localStorage.setItem('ic_canva_design', JSON.stringify(updated))
+      saveAdminConfigToDb({ canva_design: updated })
+      showToast(`🎨 Tema Admin diperbarui ke: ${themeId} & tersimpan ke Cloud!`)
+    }
+  }
+
+  // Inline dynamic CSS Variables based on Canva Studio configuration (Isolasi Customer vs Admin)
+  const activeDesign = viewRole === 'customer' ? customerCanvaDesign : canvaDesign
   const dynamicCssVariables = {
-    '--bg-color': canvaDesign.bgColor,
-    '--surface-color': canvaDesign.surfaceColor,
-    '--surface-card': canvaDesign.surfaceCard,
-    '--surface-border': canvaDesign.surfaceBorder,
-    '--primary-color': canvaDesign.primaryColor,
-    '--text-primary': canvaDesign.textPrimary,
-    '--text-secondary': canvaDesign.textSecondary,
-    backgroundColor: canvaDesign.bgType === 'color' ? canvaDesign.bgColor : undefined,
-    backgroundImage: canvaDesign.bgType === 'gradient' ? canvaDesign.bgGradient :
-      canvaDesign.bgType === 'image' && canvaDesign.bgImage ? `url(${canvaDesign.bgImage})` : undefined,
-    backgroundSize: canvaDesign.bgType === 'image' ? 'cover' : undefined,
-    backgroundAttachment: canvaDesign.bgType === 'image' ? 'fixed' : undefined,
-    backgroundPosition: canvaDesign.bgType === 'image' ? 'center' : undefined,
+    '--bg-color': activeDesign.bgColor,
+    '--surface-color': activeDesign.surfaceColor,
+    '--surface-card': activeDesign.surfaceCard,
+    '--surface-border': activeDesign.surfaceBorder,
+    '--primary-color': activeDesign.primaryColor,
+    '--text-primary': activeDesign.textPrimary,
+    '--text-secondary': activeDesign.textSecondary,
+    backgroundColor: activeDesign.bgType === 'color' ? activeDesign.bgColor : undefined,
+    backgroundImage: activeDesign.bgType === 'gradient' ? activeDesign.bgGradient :
+      activeDesign.bgType === 'image' && activeDesign.bgImage ? `url(${activeDesign.bgImage})` : undefined,
+    backgroundSize: activeDesign.bgType === 'image' ? 'cover' : undefined,
+    backgroundAttachment: activeDesign.bgType === 'image' ? 'fixed' : undefined,
+    backgroundPosition: activeDesign.bgType === 'image' ? 'center' : undefined,
     minHeight: '100vh',
-    fontFamily: canvaDesign.fontFamily === 'outfit' ? "'Outfit', sans-serif" :
-      canvaDesign.fontFamily === 'poppins' ? "'Poppins', sans-serif" :
-        canvaDesign.fontFamily === 'serif' ? "'Playfair Display', Georgia, serif" :
-          canvaDesign.fontFamily === 'mono' ? "monospace" : "inherit"
+    fontFamily: activeDesign.fontFamily === 'outfit' ? "'Outfit', sans-serif" :
+      activeDesign.fontFamily === 'poppins' ? "'Poppins', sans-serif" :
+        activeDesign.fontFamily === 'serif' ? "'Playfair Display', Georgia, serif" :
+          activeDesign.fontFamily === 'mono' ? "monospace" : "inherit"
   } as React.CSSProperties
 
   return (
@@ -1552,7 +1682,7 @@ export default function App() {
             {THEMES.map(t => (
               <button
                 key={t.id}
-                onClick={() => setCurrentTheme(t.id)}
+                onClick={() => handleApplyTheme(t.id)}
                 title={t.name}
                 style={{
                   width: '18px',
@@ -1566,6 +1696,24 @@ export default function App() {
                 }}
               />
             ))}
+            {/* Tombol Canva Studio untuk Pembeli (Perangkat Lokal) */}
+            {viewRole === 'customer' && (
+              <button
+                className="nav-tool-btn"
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '0.22rem 0.55rem',
+                  marginLeft: '0.35rem',
+                  background: 'linear-gradient(135deg, rgba(244,63,94,0.35), rgba(124,58,237,0.35))',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: '#ffffff'
+                }}
+                onClick={() => setIsCustomerCanvaModalOpen(true)}
+                title="Buka Canva Studio untuk ganti background, warna kartu & font di perangkat ini"
+              >
+                🎨 Studio Desain
+              </button>
+            )}
           </div>
 
           {/* Admin Switcher Button */}
@@ -1638,6 +1786,13 @@ export default function App() {
                 ) : activeOrdersCount > 0 ? (
                   <span className="badge-counter">{activeOrdersCount}</span>
                 ) : null}
+              </button>
+
+              <button
+                className={`nav-tool-btn ${customerTab === 'reviews' ? 'active' : ''}`}
+                onClick={() => setCustomerTab('reviews')}
+              >
+                ⭐ Ulasan ({reviews.length})
               </button>
 
               <button
@@ -1796,6 +1951,132 @@ export default function App() {
                       </div>
                     )}
                   </div>
+
+                  {/* Live Order Tracker Bar untuk Pembeli */}
+                  {(() => {
+                    const activeOrder = orders.find(o => {
+                      const isOwner = currentUser
+                        ? o.customerName === currentUser.name
+                        : o.id === localStorage.getItem('ic_last_order_id')
+                      return isOwner && ['DITERIMA', 'DIMASAK', 'DIANTAR_KE_KAMAR'].includes(o.orderStatus)
+                    })
+                    if (!activeOrder) return null
+
+                    const steps = [
+                      { key: 'DITERIMA', label: 'Diterima Dapur', icon: '📝' },
+                      { key: 'DIMASAK', label: 'Dimasak / Diracik', icon: '🍳' },
+                      { key: 'DIANTAR_KE_KAMAR', label: 'Diantar ke Kamar', icon: '🛵' },
+                      { key: 'SELESAI', label: 'Tiba / Selesai', icon: '✅' }
+                    ]
+                    const stepIndexMap: Record<string, number> = {
+                      DITERIMA: 0,
+                      DIMASAK: 1,
+                      DIANTAR_KE_KAMAR: 2,
+                      SELESAI: 3
+                    }
+                    const currentIdx = stepIndexMap[activeOrder.orderStatus] ?? 0
+
+                    return (
+                      <div
+                        style={{
+                          background: 'var(--surface-color)',
+                          border: '2px solid var(--primary-color)',
+                          borderRadius: '20px',
+                          padding: '1.25rem 1.5rem',
+                          marginBottom: '1.5rem',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <span style={{ fontSize: '1.4rem' }}>⏳</span>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                                Live Tracking: Pesanan #{activeOrder.id}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                {activeOrder.items.map(it => `${it.name} (${it.quantity}x)`).join(', ')} • Total Rp {activeOrder.total.toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            className="nav-tool-btn"
+                            style={{ fontSize: '0.75rem', padding: '0.35rem 0.8rem', background: 'var(--surface-card)', border: '1px solid var(--surface-border)' }}
+                            onClick={() => setCustomerTab('history')}
+                          >
+                            Lihat di Riwayat ➔
+                          </button>
+                        </div>
+
+                        {/* Progress Stepper Bar */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', position: 'relative' }}>
+                          {steps.map((st, idx) => {
+                            const isPassed = idx <= currentIdx
+                            const isCurrent = idx === currentIdx
+                            return (
+                              <div
+                                key={st.key}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  textAlign: 'center',
+                                  gap: '0.4rem',
+                                  position: 'relative'
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '1.1rem',
+                                    background: isCurrent
+                                      ? 'var(--primary-color)'
+                                      : isPassed
+                                        ? 'rgba(16, 185, 129, 0.25)'
+                                        : 'var(--surface-card)',
+                                    color: isCurrent ? '#ffffff' : isPassed ? '#10b981' : 'var(--text-muted)',
+                                    border: isCurrent
+                                      ? '2px solid #ffffff'
+                                      : isPassed
+                                        ? '2px solid #10b981'
+                                        : '2px dashed var(--surface-border)',
+                                    boxShadow: isCurrent ? '0 0 12px var(--primary-color)' : 'none',
+                                    transition: 'all 0.3s'
+                                  }}
+                                >
+                                  {isPassed && !isCurrent ? '✓' : st.icon}
+                                </div>
+                                <div style={{
+                                  fontSize: '0.78rem',
+                                  fontWeight: isCurrent ? 800 : 600,
+                                  color: isCurrent ? 'var(--primary-color)' : isPassed ? 'var(--text-primary)' : 'var(--text-muted)'
+                                }}>
+                                  {st.label}
+                                </div>
+                                {isCurrent && (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    background: 'var(--primary-color)',
+                                    color: '#ffffff',
+                                    padding: '0.1rem 0.45rem',
+                                    borderRadius: '999px',
+                                    fontWeight: 700
+                                  }}>
+                                    Sedang Proses
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Banner Pengingat Bayar Offline (Kotak Kuning/Oranye yang bisa diedit admin) */}
                   <div className="offline-notice-box">
@@ -2191,6 +2472,118 @@ export default function App() {
                 </div>
               )}
 
+              {/* TAB KHUSUS: ULASAN & REVIEW MAKANAN DARI MURID */}
+              {customerTab === 'reviews' && (
+                <div>
+                  <div style={{ background: 'var(--surface-color)', padding: '2rem', borderRadius: '24px', border: '1px solid var(--surface-border)', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <h2 style={{ fontSize: '1.6rem', fontWeight: 900, margin: 0 }}>⭐ Ulasan & Kepuasan Murid</h2>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0.35rem 0 0 0' }}>
+                          Rating dan komentar transparan ala Google Maps dari santri/santriwati asrama MAN Insan Cendekia Tanah Laut.
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--surface-card)', padding: '0.75rem 1.25rem', borderRadius: '18px', border: '1px solid var(--surface-border)' }}>
+                        <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>
+                          {reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '5.0'}
+                        </div>
+                        <div>
+                          <div style={{ color: '#f59e0b', fontSize: '1rem', letterSpacing: '1px' }}>
+                            {'★'.repeat(5)}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {reviews.length} Ulasan Terverifikasi
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {reviews.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '4rem 1.5rem', background: 'var(--surface-color)', borderRadius: '24px', border: '1px solid var(--surface-border)' }}>
+                      <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>💬</div>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Belum Ada Ulasan</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: '450px', margin: '0.5rem auto 1.5rem' }}>
+                        Jadilah yang pertama mencoba makanan kantin dan berikan rating bintang 5 setelah pesananmu selesai!
+                      </p>
+                      <button className="btn-primary" onClick={() => setCustomerTab('menu')}>
+                        🍱 Lihat Menu & Pesan Sekarang
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                      {reviews.map(rev => {
+                        const targetMenu = menus.find(m => m.id === rev.menuId)
+                        return (
+                          <div
+                            key={rev.id}
+                            style={{
+                              background: 'var(--surface-color)',
+                              border: '1px solid var(--surface-border)',
+                              borderRadius: '20px',
+                              padding: '1.25rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+                            }}
+                          >
+                            <div>
+                              {/* Header Pengulas & Target Menu */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                  <div style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '50%',
+                                    background: 'var(--surface-card)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '1.1rem',
+                                    border: '1px solid var(--surface-border)'
+                                  }}>
+                                    🎓
+                                  </div>
+                                  <div>
+                                    <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)', display: 'block' }}>{rev.customerName}</strong>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                      {rev.customerKelas ? `${rev.customerKelas} • ` : ''}{rev.customerKamar || 'Asrama'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '0.2rem 0.55rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                  <span>⭐</span>
+                                  <span>{rev.rating.toFixed(1)}</span>
+                                </div>
+                              </div>
+
+                              {/* Target Menu Badge */}
+                              {targetMenu && (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'var(--surface-card)', padding: '0.25rem 0.65rem', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--text-primary)', marginBottom: '0.75rem', border: '1px solid var(--surface-border)' }}>
+                                  <span>{targetMenu.icon || '🍲'}</span>
+                                  <span style={{ fontWeight: 700 }}>{targetMenu.name}</span>
+                                </div>
+                              )}
+
+                              {/* Isi Komentar */}
+                              <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.5, margin: '0 0 0.75rem 0' }}>
+                                "{rev.comment}"
+                              </p>
+                            </div>
+
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid var(--surface-border)', paddingTop: '0.6rem' }}>
+                              🕒 {new Date(rev.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WITA
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* TAB 4: KERANJANG BELANJA */}
               {customerTab === 'cart' && (
                 <div>
@@ -2364,6 +2757,10 @@ export default function App() {
               <span style={{ fontSize: '1.3rem' }}>📋</span>
               <span>Riwayat</span>
               {unpaidCount > 0 && <span className="badge-counter" style={{ position: 'absolute', top: '4px', right: '20%' }}>{unpaidCount}</span>}
+            </button>
+            <button className={`alt-nav-item ${customerTab === 'reviews' ? 'active' : ''}`} onClick={() => setCustomerTab('reviews')}>
+              <span style={{ fontSize: '1.3rem' }}>⭐</span>
+              <span>Ulasan</span>
             </button>
             <button className={`alt-nav-item ${customerTab === 'about' ? 'active' : ''}`} onClick={() => setCustomerTab('about')}>
               <span style={{ fontSize: '1.3rem' }}>ℹ️</span>
@@ -3174,8 +3571,10 @@ export default function App() {
                         if (file) {
                           try {
                             const b64 = await readFileAsDataUrl(file)
-                            setAboutData({ ...aboutData, galleryImages: [...aboutData.galleryImages, b64] })
-                            showToast('📸 Foto berhasil ditambahkan ke galeri!')
+                            const updated = { ...aboutData, galleryImages: [...aboutData.galleryImages, b64] }
+                            setAboutData(updated)
+                            await saveAdminConfigToDb({ about_data: updated })
+                            showToast('📸 Foto berhasil ditambahkan ke galeri & Cloud!')
                           } catch (err) {
                             alert('Gagal mengunggah gambar.')
                           }
@@ -3190,12 +3589,14 @@ export default function App() {
                         <img src={img} alt={`Galeri ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <button
                           style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer' }}
-                          onClick={() => {
-                            setAboutData({
+                          onClick={async () => {
+                            const updated = {
                               ...aboutData,
                               galleryImages: aboutData.galleryImages.filter((_, i) => i !== idx)
-                            })
-                            showToast('🗑️ Foto dihapus dari galeri.')
+                            }
+                            setAboutData(updated)
+                            await saveAdminConfigToDb({ about_data: updated })
+                            showToast('🗑️ Foto dihapus dari galeri & Cloud.')
                           }}
                         >
                           ✕
@@ -3910,6 +4311,271 @@ export default function App() {
               </div>
             )}
           </main>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL KHUSUS: STUDIO DESAIN ALA CANVA UNTUK PEMBELI (ISOLASI PER DEVICE)
+          ========================================================================= */}
+      {isCustomerCanvaModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsCustomerCanvaModalOpen(false)}>
+          <div
+            className="modal-box"
+            style={{ maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0 }}>🎨 Studio Desain Pribadi</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
+                  Kustomisasi tema tampilan sesukamu! Perubahan hanya berlaku di perangkatmu (tidak mengubah pengguna lain).
+                </p>
+              </div>
+              <button className="modal-close-x" onClick={() => setIsCustomerCanvaModalOpen(false)}>✕</button>
+            </div>
+
+            {/* 1. Preset Tema 1-Klik */}
+            <div style={{ marginBottom: '1.5rem', background: 'var(--surface-card)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.65rem' }}>⚡ Preset Skema Desain 1-Klik</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.5rem' }}>
+                {THEMES.map(t => (
+                  <button
+                    key={t.id}
+                    className="nav-tool-btn"
+                    style={{
+                      padding: '0.6rem 0.4rem',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      background: currentTheme === t.id ? 'var(--surface-color)' : 'transparent',
+                      border: currentTheme === t.id ? '2px solid var(--primary-color)' : '1px solid var(--surface-border)'
+                    }}
+                    onClick={() => handleApplyTheme(t.id)}
+                  >
+                    <span style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: t.color, display: 'inline-block' }} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Tipe & Warna Latar Belakang */}
+            <div style={{ marginBottom: '1.5rem', background: 'var(--surface-card)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.65rem' }}>🖼️ Mode Latar Belakang (Background)</div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  className={`cat-chip ${customerCanvaDesign.bgType === 'color' ? 'active' : ''}`}
+                  onClick={() => {
+                    const upd = { ...customerCanvaDesign, bgType: 'color' as const }
+                    setCustomerCanvaDesign(upd)
+                    localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                  }}
+                >
+                  Warna Solid
+                </button>
+                <button
+                  className={`cat-chip ${customerCanvaDesign.bgType === 'gradient' ? 'active' : ''}`}
+                  onClick={() => {
+                    const upd = { ...customerCanvaDesign, bgType: 'gradient' as const }
+                    setCustomerCanvaDesign(upd)
+                    localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                  }}
+                >
+                  Gradient Futuristik
+                </button>
+                <button
+                  className={`cat-chip ${customerCanvaDesign.bgType === 'image' ? 'active' : ''}`}
+                  onClick={() => {
+                    const upd = { ...customerCanvaDesign, bgType: 'image' as const }
+                    setCustomerCanvaDesign(upd)
+                    localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                  }}
+                >
+                  Wallpaper Foto
+                </button>
+              </div>
+
+              {customerCanvaDesign.bgType === 'color' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <label style={{ fontSize: '0.85rem', flex: 1 }}>Warna Background:</label>
+                  <input
+                    type="color"
+                    value={customerCanvaDesign.bgColor}
+                    onChange={e => {
+                      const upd = { ...customerCanvaDesign, bgColor: e.target.value }
+                      setCustomerCanvaDesign(upd)
+                      localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                    }}
+                    style={{ width: '48px', height: '34px', borderRadius: '8px', cursor: 'pointer', border: 'none' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontFamily: 'monospace' }}>{customerCanvaDesign.bgColor}</span>
+                </div>
+              )}
+
+              {customerCanvaDesign.bgType === 'gradient' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.82rem' }}>Pilih Preset Gradient:</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
+                    {[
+                      { name: 'Dark Nebula', val: 'linear-gradient(135deg, #0b0f19 0%, #111827 50%, #0f172a 100%)' },
+                      { name: 'Sunset Glow', val: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #701a75 100%)' },
+                      { name: 'Emerald Night', val: 'linear-gradient(135deg, #022c22 0%, #064e3b 50%, #0f172a 100%)' },
+                      { name: 'Aurora Borealis', val: 'linear-gradient(135deg, #0f172a 0%, #0369a1 50%, #0d9488 100%)' }
+                    ].map(g => (
+                      <button
+                        key={g.name}
+                        onClick={() => {
+                          const upd = { ...customerCanvaDesign, bgGradient: g.val }
+                          setCustomerCanvaDesign(upd)
+                          localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                        }}
+                        style={{
+                          background: g.val,
+                          color: '#ffffff',
+                          padding: '0.55rem',
+                          borderRadius: '10px',
+                          border: customerCanvaDesign.bgGradient === g.val ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.2)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {customerCanvaDesign.bgType === 'image' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.82rem' }}>URL Wallpaper atau Upload Foto:</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="https://images.unsplash.com/photo-..."
+                    value={customerCanvaDesign.bgImage}
+                    onChange={e => {
+                      const upd = { ...customerCanvaDesign, bgImage: e.target.value }
+                      setCustomerCanvaDesign(upd)
+                      localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                    }}
+                  />
+                  <div className="file-upload-box" style={{ padding: '0.5rem' }}>
+                    <span style={{ fontSize: '0.78rem' }}>📁 Pilih Foto Wallpaper dari HP / Komputer</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async e => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          try {
+                            const b64 = await readFileAsDataUrl(file)
+                            const upd = { ...customerCanvaDesign, bgImage: b64 }
+                            setCustomerCanvaDesign(upd)
+                            localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                            showToast('📸 Wallpaper perangkatmu berhasil diterapkan!')
+                          } catch {
+                            alert('Gagal membaca gambar.')
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Warna Kartu, Border & Aksen */}
+            <div style={{ marginBottom: '1.5rem', background: 'var(--surface-card)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.65rem' }}>🎨 Palet Warna Kartu & Aksen</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-color)', padding: '0.5rem 0.75rem', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '0.8rem' }}>Warna Kartu Menu</span>
+                  <input
+                    type="color"
+                    value={customerCanvaDesign.surfaceCard}
+                    onChange={e => {
+                      const upd = { ...customerCanvaDesign, surfaceCard: e.target.value }
+                      setCustomerCanvaDesign(upd)
+                      localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                    }}
+                    style={{ width: '34px', height: '26px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-color)', padding: '0.5rem 0.75rem', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '0.8rem' }}>Warna Tombol / Aksen</span>
+                  <input
+                    type="color"
+                    value={customerCanvaDesign.primaryColor}
+                    onChange={e => {
+                      const upd = { ...customerCanvaDesign, primaryColor: e.target.value }
+                      setCustomerCanvaDesign(upd)
+                      localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                    }}
+                    style={{ width: '34px', height: '26px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Tipografi Font */}
+            <div style={{ marginBottom: '1.5rem', background: 'var(--surface-card)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.65rem' }}>🔤 Gaya Huruf (Font)</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.5rem' }}>
+                {[
+                  { id: 'outfit', label: 'Outfit (Modern)' },
+                  { id: 'poppins', label: 'Poppins (Bulat)' },
+                  { id: 'serif', label: 'Playfair (Klasik)' },
+                  { id: 'mono', label: 'Monospace (Cyber)' }
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    className="nav-tool-btn"
+                    style={{
+                      padding: '0.45rem',
+                      justifyContent: 'center',
+                      fontSize: '0.78rem',
+                      fontWeight: customerCanvaDesign.fontFamily === f.id ? 800 : 500,
+                      border: customerCanvaDesign.fontFamily === f.id ? '2px solid var(--primary-color)' : '1px solid var(--surface-border)'
+                    }}
+                    onClick={() => {
+                      const upd = { ...customerCanvaDesign, fontFamily: f.id as any }
+                      setCustomerCanvaDesign(upd)
+                      localStorage.setItem('ic_customer_canva', JSON.stringify(upd))
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions Footer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', borderTop: '1px solid var(--surface-border)', paddingTop: '1rem' }}>
+              <button
+                className="nav-tool-btn"
+                style={{ fontSize: '0.82rem', padding: '0.5rem 1rem' }}
+                onClick={() => {
+                  setCustomerCanvaDesign(INITIAL_CANVA_DESIGN)
+                  localStorage.removeItem('ic_customer_canva')
+                  showToast('🔄 Desain dikembalikan ke tema default!')
+                }}
+              >
+                🔄 Reset Default
+              </button>
+              <button
+                className="btn-primary"
+                style={{ fontSize: '0.88rem', padding: '0.5rem 1.5rem' }}
+                onClick={() => {
+                  setIsCustomerCanvaModalOpen(false)
+                  showToast('✨ Desain pribadi aktif di perangkatmu!')
+                }}
+              >
+                ✓ Selesai & Tutup
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -256,7 +256,6 @@ export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>): P
     const dbConfigObj = (existing as any)?.config || (existing as any) || {}
     const newConfigObj = {
       ...dbConfigObj,
-      ...cachedAdminConfig,
       ...configData,
       updated_at: new Date().toISOString()
     }
