@@ -5084,7 +5084,7 @@ export default function App() {
               </div>
 
               {/* Form Tulis Ulasan */}
-              {false && reviewMenuTarget?.id === selectedMenuForDetail.id && (
+              {false && reviewMenuTarget?.id === selectedMenuForDetail?.id && (
                 <div style={{ background: 'var(--surface-card)', padding: '1rem', borderRadius: '14px', marginBottom: '1rem' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.4rem' }}>Beri Rating Bintang:</div>
                   <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
