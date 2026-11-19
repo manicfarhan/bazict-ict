@@ -2980,3 +2980,50 @@ input:-webkit-autofill:focus {
 .top-bar span {
   color: #f8fafc !important;
 }
+
+/* fix-alt-hero-all-themes */
+.ic-top-banner {
+  color: #f8fafc !important;
+}
+.ic-top-banner > div > span {
+  color: #f8fafc !important;
+}
+
+/* Default Dark Theme Hero Banner */
+.alt-hero-banner {
+  background: var(--surface-card, #1e293b) !important;
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1)) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14) !important;
+}
+.alt-hero-content h2 {
+  color: var(--primary-color, #ff4d4d) !important;
+  -webkit-text-fill-color: var(--primary-color, #ff4d4d) !important;
+  background: none !important;
+}
+.alt-hero-content p {
+  color: var(--text-primary, #f8fafc) !important;
+  opacity: 0.92 !important;
+}
+.dormitory-callout span {
+  background: var(--surface-color, rgba(255, 255, 255, 0.06)) !important;
+  color: var(--text-primary, #f8fafc) !important;
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12)) !important;
+}
+
+/* Specific Soft Backgrounds for Light, Pink, Blue, Green Themes */
+[data-theme="light"] .alt-hero-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%) !important;
+  border: 1px solid #fecdd3 !important;
+}
+[data-theme="pink"] .alt-hero-banner {
+  background: linear-gradient(135deg, #fff5f8 0%, #fce7f3 100%) !important;
+  border: 1px solid #f9a8d4 !important;
+}
+[data-theme="blue"] .alt-hero-banner {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  border: 1px solid #7dd3fc !important;
+}
+[data-theme="green"] .alt-hero-banner {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+  border: 1px solid #86efac !important;
+}
