@@ -2987,7 +2987,11 @@ export default function App() {
                   >
                     <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>💰</div>
                     <div className="stat-info">
-                      <h3>Total Penjualan</h3><button onClick={() => { const rows = [["ID Pesanan","Waktu","Pemesan","Kelas/Kamar","Detail Menu","Total","Metode","Status Bayar","Status Pesanan"], ...(orders || []).map((o: any) => [o.id, `"${new Date(o.createdAt).toLocaleString("id-ID")}"`, `"${(o.customerName || "").replace(/"/g, "'")}"`, `"${o.customerKelas || ""} ${o.customerKamar || ""}"`, `"${(o.items || []).map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}"`, o.total || 0, `"${o.paymentMethod || ""}"`, o.paymentStatus || "", o.orderStatus || ""])]; const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "laporan-omzet-bazar.csv"; a.click(); }} style={{ marginTop: "0.5rem", marginBottom: "0.35rem", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--surface-border)", background: "var(--primary-color)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>📥 Unduh Laporan Omzet (.csv)</button>
+                      <h3>Total Penjualan</h3><button onClick={() => { const rows = [["ID Pesanan","Waktu","Pemesan","Kelas/Kamar","Detail Menu","Total","Metode","Status Bayar","Status Pesanan"], ...(orders || []).map((o: any) => [o.id, `"${new Date(o.createdAt).toLocaleString("id-ID")}"`, `"${(o.customerName || "").replace(/"/g, "'")}"`, `"${o.customerKelas || ""} ${o.customerKamar || ""}"`, `"${(o.items || []).map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}"`, o.total || 0, `"${o.paymentMethod || ""}"`, o.paymentStatus || "", o.orderStatus || ""])]; const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "laporan-omzet-bazar.csv"; a.click(); }} style={{ marginTop: "0.5rem", marginBottom: "0.35rem", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--surface-border)", background: "var(--primary-color)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>📥 Unduh Laporan Omzet (.csv)
+                      </button>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem', fontWeight: 700 }}>
+                        Lunas: {formatRupiah((orders || []).filter(o => o.paymentStatus === 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))} | Belum Bayar: {formatRupiah((orders || []).filter(o => o.paymentStatus !== 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))}
+                      </div>
                       <div className="stat-value">{formatRupiah(orders.filter(o => o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + o.total, 0))}</div>
                     </div>
                   </div>
@@ -3036,7 +3040,7 @@ export default function App() {
                     <tbody>
                       {orders.map(o => (
                         <tr key={o.id}>
-                          <td><strong>#{o.id}</strong></td>
+                          <td><strong>#{o.id}</strong><div className="admin-order-timer" style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>📅 {new Date(o.createdAt).toLocaleString("id-ID", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>{(() => { const sMs = new Date(o.createdAt).getTime(); const eMs = (o as any).completedAt ? new Date((o as any).completedAt).getTime() : (o.orderStatus === "SELESAI" ? sMs : nowTick); const diff = Math.max(0, Math.floor((eMs - sMs) / 1000)); const mm = String(Math.floor(diff / 60)).padStart(2, "0"); const ss = String(diff % 60).padStart(2, "0"); return (<div style={{ display: "inline-block", marginTop: "0.3rem", padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.7rem", fontWeight: 800, background: o.orderStatus === "SELESAI" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)", color: o.orderStatus === "SELESAI" ? "#10b981" : "#f59e0b" }}>{o.orderStatus === "SELESAI" ? `✅ ${mm}m ${ss}d` : `⏱️ ${mm}m ${ss}d`}</div>); })()}</td>
                           <td>
                             <strong>{o.customerName}</strong> ({o.customerKelas})
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>📍 {o.customerKamar}</div>
@@ -3118,7 +3122,7 @@ export default function App() {
                   <tbody>
                     {orders.map(o => (
                       <tr key={o.id}>
-                        <td><strong>#{o.id}</strong></td>
+                        <td><strong>#{o.id}</strong><div className="admin-order-timer" style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>📅 {new Date(o.createdAt).toLocaleString("id-ID", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>{(() => { const sMs = new Date(o.createdAt).getTime(); const eMs = (o as any).completedAt ? new Date((o as any).completedAt).getTime() : (o.orderStatus === "SELESAI" ? sMs : nowTick); const diff = Math.max(0, Math.floor((eMs - sMs) / 1000)); const mm = String(Math.floor(diff / 60)).padStart(2, "0"); const ss = String(diff % 60).padStart(2, "0"); return (<div style={{ display: "inline-block", marginTop: "0.3rem", padding: "0.15rem 0.5rem", borderRadius: "999px", fontSize: "0.7rem", fontWeight: 800, background: o.orderStatus === "SELESAI" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)", color: o.orderStatus === "SELESAI" ? "#10b981" : "#f59e0b" }}>{o.orderStatus === "SELESAI" ? `✅ ${mm}m ${ss}d` : `⏱️ ${mm}m ${ss}d`}</div>); })()}</td>
                         <td>
                           <strong>{o.customerName}</strong>
                           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{o.customerKelas} • {o.customerKamar}</div>
@@ -3167,7 +3171,7 @@ export default function App() {
                           ) : (
                             <span style={{ fontSize: '0.8rem', color: '#f87171' }}>Telah Dibatalkan</span>
                           )}
-                        </td>
+                        <div style={{ marginTop: "0.4rem" }}><button onClick={async () => { if (!window.confirm(`Hapus permanen pesanan #${o.id}?`)) return; const nextOrders = orders.filter(ord => ord.id !== o.id); setOrders(nextOrders); localStorage.setItem("ic_orders", JSON.stringify(nextOrders)); await supabase.from("orders").delete().eq("id", o.id); }} style={{ padding: "0.3rem 0.6rem", borderRadius: "6px", border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.12)", color: "#ef4444", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer" }}>🗑️ Hapus Permanen</button></div></td>
                       </tr>
                     ))}
                   </tbody>
