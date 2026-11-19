@@ -1,4 +1,4 @@
-/* =========================================================================
+﻿/* =========================================================================
    IC-BITES TANAH LAUT - COMPREHENSIVE STYLING SYSTEM
    Khusus MAN Insan Cendekia Tanah Laut (Edisi Murid & Asrama)
    Desain Futuristik Clean Kiosk Ala Gemini & McD UI
@@ -582,14 +582,6 @@ body {
   transition: transform 0.4s ease;
 }
 
-
-.card-img-wrapper img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  display: block !important;
-  transition: transform 0.4s ease;
-}
 
 .menu-card-item:hover .card-img-wrapper img {
   transform: scale(1.08);

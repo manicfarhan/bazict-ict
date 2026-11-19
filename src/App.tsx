@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import {
   supabase,
@@ -425,6 +425,8 @@ export default function App() {
 
   // Admin Navigation Tabs (9 Tabs Komprehensif)
   const [adminTab, setAdminTab] = useState<string>('Dashboard')
+  const [nowTick, setNowTick] = useState(Date.now())
+  useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 1000); return () => clearInterval(t); }, [])
   const [userSearch, setUserSearch] = useState('')
   const [userFilter, setUserFilter] = useState<'semua' | 'kelas' | 'kamar' | 'angkatan'>('semua')
 
@@ -2291,10 +2293,7 @@ export default function App() {
                         <div key={order.id} className="order-history-card">
                           <div className="order-history-top">
                             <div className="order-id-group">
-                              <h4>Pesanan #{order.id}</h4>
-                              <div className="order-date">
-                                📅 {new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {new Date(order.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                              </div>
+                              <h4>Pesanan #{order.id}</h4><div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--primary-color)", marginTop: "0.2rem" }}>{order.customerName}</div><div className="order-date">📅 {new Date(order.createdAt).toLocaleString("id-ID", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>{(() => { const startMs = new Date(order.createdAt).getTime(); const endMs = (order as any).completedAt ? new Date((order as any).completedAt).getTime() : (order.orderStatus === "SELESAI" ? startMs : nowTick); const diffSec = Math.max(0, Math.floor((endMs - startMs) / 1000)); const mins = String(Math.floor(diffSec / 60)).padStart(2, "0"); const secs = String(diffSec % 60).padStart(2, "0"); return (<div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", marginTop: "0.45rem" }}><span style={{ padding: "0.25rem 0.65rem", borderRadius: "999px", fontSize: "0.76rem", fontWeight: 800, background: order.orderStatus === "SELESAI" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)", color: order.orderStatus === "SELESAI" ? "#10b981" : "#f59e0b" }}>{order.orderStatus === "SELESAI" ? `✅ Selesai dalam ${mins} mnt ${secs} dtk` : `⏱️ Berjalan: ${mins} mnt ${secs} dtk`}</span>{order.orderStatus !== "SELESAI" && order.orderStatus !== "DIBATALKAN" && (<button onClick={() => { const updated = orders.map(o => o.id === order.id ? { ...o, orderStatus: "SELESAI" as const, completedAt: new Date().toISOString() } : o); setOrders(updated); localStorage.setItem("ic_orders", JSON.stringify(updated)); updateOrderStatusInDb(order.id, "SELESAI"); }} style={{ padding: "0.25rem 0.7rem", borderRadius: "999px", border: "none", background: "#10b981", color: "#fff", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer" }}>✓ Pesanan Selesai</button>)}</div>); })()}
                             </div>
 
                             {/* Payment & Status Badges */}
@@ -2988,7 +2987,7 @@ export default function App() {
                   >
                     <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>💰</div>
                     <div className="stat-info">
-                      <h3>Total Penjualan</h3>
+                      <h3>Total Penjualan</h3><button onClick={() => { const rows = [["ID Pesanan","Waktu","Pemesan","Kelas/Kamar","Detail Menu","Total","Metode","Status Bayar","Status Pesanan"], ...(orders || []).map((o: any) => [o.id, `"${new Date(o.createdAt).toLocaleString("id-ID")}"`, `"${(o.customerName || "").replace(/"/g, "'")}"`, `"${o.customerKelas || ""} ${o.customerKamar || ""}"`, `"${(o.items || []).map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}"`, o.total || 0, `"${o.paymentMethod || ""}"`, o.paymentStatus || "", o.orderStatus || ""])]; const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "laporan-omzet-bazar.csv"; a.click(); }} style={{ marginTop: "0.5rem", marginBottom: "0.35rem", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--surface-border)", background: "var(--primary-color)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>📥 Unduh Laporan Omzet (.csv)</button>
                       <div className="stat-value">{formatRupiah(orders.filter(o => o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + o.total, 0))}</div>
                     </div>
                   </div>
@@ -3101,7 +3100,7 @@ export default function App() {
             {adminTab === 'Orders' && (
               <div className="table-card">
                 <div className="table-header-row">
-                  <h3>📦 Kelola Seluruh Pesanan Asrama</h3>
+                  {(() => { const activeOrders = (orders || []).filter(o => o.orderStatus !== "SELESAI" && o.orderStatus !== "DIBATALKAN"); const kMap: Record<string, number> = {}; activeOrders.forEach(o => (o.items || []).forEach((it: any) => { kMap[it.name] = (kMap[it.name] || 0) + (it.quantity || 1); })); const entries = Object.entries(kMap); return (<div style={{ marginBottom: "1.25rem", padding: "1rem 1.25rem", borderRadius: "16px", background: "var(--surface-card)", border: "1px solid var(--surface-border)" }}><div style={{ fontWeight: 800, fontSize: "0.92rem", color: "var(--text-primary)", marginBottom: "0.45rem" }}>🍳 Rekap Masak Dapur (Pesanan Aktif: {activeOrders.length})</div>{entries.length === 0 ? <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>Belum ada antrean masakan aktif.</div> : <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>{entries.map(([m, q]) => <span key={m} style={{ padding: "0.35rem 0.75rem", borderRadius: "999px", background: "rgba(245,158,11,0.15)", color: "#f59e0b", fontWeight: 800, fontSize: "0.82rem" }}>{q}x {m}</span>)}</div>}</div>); })()}<h3>📦 Kelola Seluruh Pesanan Asrama</h3>
                 </div>
 
                 <table className="admin-table">
