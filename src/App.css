@@ -2926,3 +2926,24 @@ input:-webkit-autofill:focus {
   background: rgba(239, 68, 68, 0.25) !important;
   border: 1px solid rgba(239, 68, 68, 0.5) !important;
 }
+
+/* fix-form-grid-overflow */
+.form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+}
+.form-grid .form-group,
+.form-group {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
