@@ -3260,6 +3260,15 @@ export default function App() {
                             <option value="SELESAI">4. Selesai</option>
                             <option value="DIBATALKAN">❌ Dibatalkan</option>
                           </select>
+                          {o.orderStatus !== 'SELESAI' && o.orderStatus !== 'DIBATALKAN' && (
+                            <button
+                              type="button"
+                              onClick={() => handleAdminUpdateOrderStatus(o.id, 'SELESAI')}
+                              style={{ display: 'block', marginTop: '0.45rem', width: '100%', padding: '0.4rem 0.65rem', borderRadius: '8px', border: 'none', background: '#10b981', color: '#fff', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                              ✅ Selesaikan Pesanan
+                            </button>
+                          )}
                         </td>
                         <td>
                           {o.orderStatus !== 'DIBATALKAN' ? (
