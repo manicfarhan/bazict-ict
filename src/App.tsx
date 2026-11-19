@@ -426,6 +426,8 @@ export default function App() {
   // Admin Navigation Tabs (9 Tabs Komprehensif)
   const [adminTab, setAdminTab] = useState<string>('Dashboard')
   const [nowTick, setNowTick] = useState(Date.now())
+  const [reviewedOrderItems, setReviewedOrderItems] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('ic_reviewed_order_items') || '[]'); } catch { return []; } })
+  const [activeReviewKey, setActiveReviewKey] = useState<string | null>(null)
   useEffect(() => { const t = setInterval(() => setNowTick(Date.now()), 1000); return () => clearInterval(t); }, [])
   const [userSearch, setUserSearch] = useState('')
   const [userFilter, setUserFilter] = useState<'semua' | 'kelas' | 'kamar' | 'angkatan'>('semua')
@@ -2356,6 +2358,106 @@ export default function App() {
                               <div className={`tracker-node ${stepIndex >= 4 ? 'done' : ''} ${stepIndex === 4 ? 'active' : ''}`}>
                                 <div className="node-circle">4</div>
                                 <span className="node-label">Selesai / Tiba</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {order.orderStatus === 'SELESAI' && (
+                            <div style={{ marginTop: '0.85rem', padding: '0.75rem', borderRadius: '14px', background: 'var(--surface-card)', border: '1px solid var(--surface-border)' }}>
+                              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                ⭐ Beri Ulasan Pesanan Selesai (Maks. 1 ulasan per menu):
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {order.items.map((it, itemIdx) => {
+                                  const revKey = order.id + '_' + it.id;
+                                  const alreadyReviewed = reviewedOrderItems.includes(revKey);
+                                  const isEditingThis = activeReviewKey === revKey;
+                                  return (
+                                    <div key={itemIdx} style={{ padding: '0.55rem 0.75rem', borderRadius: '10px', background: 'var(--surface-color)', border: '1px solid var(--surface-border)' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{it.quantity}x {it.name}</span>
+                                        {alreadyReviewed ? (
+                                          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#10b981', background: 'rgba(16,185,129,0.12)', padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
+                                            ✅ Sudah Diulas
+                                          </span>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setActiveReviewKey(isEditingThis ? null : revKey);
+                                              setReviewRatingInput(5);
+                                              setReviewCommentInput('');
+                                            }}
+                                            style={{ padding: '0.25rem 0.65rem', borderRadius: '8px', border: 'none', background: 'var(--primary-color)', color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                                          >
+                                            {isEditingThis ? 'Tutup Form' : '✍️ Beri Ulasan Item'}
+                                          </button>
+                                        )}
+                                      </div>
+                                      {isEditingThis && !alreadyReviewed && (
+                                        <div style={{ marginTop: '0.6rem', paddingTop: '0.6rem', borderTop: '1px dashed var(--surface-border)' }}>
+                                          <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.45rem' }}>
+                                            {[1, 2, 3, 4, 5].map(star => (
+                                              <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setReviewRatingInput(star)}
+                                                style={{ background: 'transparent', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: star <= reviewRatingInput ? '#fbbf24' : '#4b5563' }}
+                                              >
+                                                ★
+                                              </button>
+                                            ))}
+                                          </div>
+                                          <textarea
+                                            rows={2}
+                                            placeholder={'Tulis ulasan jujurmu untuk ' + it.name + '...'}
+                                            value={reviewCommentInput}
+                                            onChange={e => setReviewCommentInput(e.target.value)}
+                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: '0.8rem', marginBottom: '0.45rem' }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              if (!reviewCommentInput.trim() || !currentUser) return;
+                                              const targetMenuObj = menus.find(m => m.id === it.id);
+                                              const newRev = {
+                                                id: 'REV-' + Date.now(),
+                                                menuId: it.id,
+                                                customerName: currentUser.name,
+                                                customerKelas: currentUser.kelas,
+                                                customerKamar: currentUser.kamar,
+                                                customerAngkatan: currentUser.angkatan,
+                                                rating: reviewRatingInput,
+                                                comment: reviewCommentInput.trim(),
+                                                createdAt: new Date().toISOString()
+                                              };
+                                              const nextRevs = [newRev, ...reviews];
+                                              setReviews(nextRevs);
+                                              localStorage.setItem('ic_reviews', JSON.stringify(nextRevs));
+                                              if (targetMenuObj) {
+                                                const mRevs = nextRevs.filter(r => r.menuId === it.id);
+                                                const avg = mRevs.reduce((s, r) => s + r.rating, 0) / mRevs.length;
+                                                const nextMenus = menus.map(m => m.id === it.id ? { ...m, rating: Number(avg.toFixed(1)), reviewCount: mRevs.length } : m);
+                                                setMenus(nextMenus);
+                                                saveAdminConfigToDb({ menus: nextMenus });
+                                              }
+                                              await insertReviewToDb(newRev as any);
+                                              const nextKeys = [...reviewedOrderItems, revKey];
+                                              setReviewedOrderItems(nextKeys);
+                                              localStorage.setItem('ic_reviewed_order_items', JSON.stringify(nextKeys));
+                                              setActiveReviewKey(null);
+                                              setReviewCommentInput('');
+                                              showToast('⭐ Terima kasih! Ulasan untuk ' + it.name + ' berhasil dikirim.');
+                                            }}
+                                            style={{ padding: '0.35rem 0.85rem', borderRadius: '8px', border: 'none', background: '#10b981', color: '#fff', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                                          >
+                                            Kirim Ulasan
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
@@ -4978,21 +5080,11 @@ export default function App() {
             <div className="reviews-modal-block">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>⭐ Ulasan Murid (Google Maps Style)</h3>
-                <button
-                  className="nav-tool-btn"
-                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
-                  onClick={() => {
-                    setReviewMenuTarget(selectedMenuForDetail)
-                    setReviewRatingInput(5.0)
-                    setReviewCommentInput('')
-                  }}
-                >
-                  ✍️ Tulis Ulasan
-                </button>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>Ulasan hanya dapat diisi dari Riwayat Pesanan</span>
               </div>
 
               {/* Form Tulis Ulasan */}
-              {reviewMenuTarget?.id === selectedMenuForDetail.id && (
+              {false && reviewMenuTarget?.id === selectedMenuForDetail.id && (
                 <div style={{ background: 'var(--surface-card)', padding: '1rem', borderRadius: '14px', marginBottom: '1rem' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.4rem' }}>Beri Rating Bintang:</div>
                   <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem' }}>
