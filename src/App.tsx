@@ -2295,7 +2295,18 @@ export default function App() {
                         <div key={order.id} className="order-history-card">
                           <div className="order-history-top">
                             <div className="order-id-group">
-                              <h4>Pesanan #{order.id}</h4><div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--primary-color)", marginTop: "0.2rem" }}>{order.customerName}</div><div className="order-date">📅 {new Date(order.createdAt).toLocaleString("id-ID", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>{(() => { const startMs = new Date(order.createdAt).getTime(); const endMs = (order as any).completedAt ? new Date((order as any).completedAt).getTime() : (order.orderStatus === "SELESAI" ? startMs : nowTick); const diffSec = Math.max(0, Math.floor((endMs - startMs) / 1000)); const mins = String(Math.floor(diffSec / 60)).padStart(2, "0"); const secs = String(diffSec % 60).padStart(2, "0"); return (<div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", marginTop: "0.45rem" }}><span style={{ padding: "0.25rem 0.65rem", borderRadius: "999px", fontSize: "0.76rem", fontWeight: 800, background: order.orderStatus === "SELESAI" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)", color: order.orderStatus === "SELESAI" ? "#10b981" : "#f59e0b" }}>{order.orderStatus === "SELESAI" ? `✅ Selesai dalam ${mins} mnt ${secs} dtk` : `⏱️ Berjalan: ${mins} mnt ${secs} dtk`}</span>{order.orderStatus !== "SELESAI" && order.orderStatus !== "DIBATALKAN" && (<button onClick={() => { const updated = orders.map(o => o.id === order.id ? { ...o, orderStatus: "SELESAI" as const, completedAt: new Date().toISOString() } : o); setOrders(updated); localStorage.setItem("ic_orders", JSON.stringify(updated)); updateOrderStatusInDb(order.id, "SELESAI"); }} style={{ padding: "0.25rem 0.7rem", borderRadius: "999px", border: "none", background: "#10b981", color: "#fff", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer" }}>✓ Pesanan Selesai</button>)}</div>); })()}
+                              <h4>Pesanan #{order.id}</h4><div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--primary-color)", marginTop: "0.2rem" }}>{order.customerName}</div><div className="order-date">📅 {new Date(order.createdAt).toLocaleString("id-ID", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>{(() => { const startMs = new Date(order.createdAt).getTime(); const endMs = (order as any).completedAt ? new Date((order as any).completedAt).getTime() : (order.orderStatus === "SELESAI" ? startMs : nowTick); const diffSec = Math.max(0, Math.floor((endMs - startMs) / 1000)); const mins = String(Math.floor(diffSec / 60)).padStart(2, "0"); const secs = String(diffSec % 60).padStart(2, "0"); return (<div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", marginTop: "0.45rem" }}><span style={{ padding: "0.25rem 0.65rem", borderRadius: "999px", fontSize: "0.76rem", fontWeight: 800, background: order.orderStatus === "SELESAI" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)", color: order.orderStatus === "SELESAI" ? "#10b981" : "#f59e0b" }}>{order.orderStatus === "SELESAI" ? `✅ Selesai dalam ${mins} mnt ${secs} dtk` : `⏱️ Berjalan: ${mins} mnt ${secs} dtk`}</span>{order.orderStatus !== "SELESAI" && order.orderStatus !== "DIBATALKAN" && (<button onClick={async () => {
+                                          lastLocalEditRef.current = Date.now();
+                                          (window as any).__lastAdminSave = Date.now();
+                                          const doneAt = new Date().toISOString();
+                                          const updated = orders.map(o => o.id === order.id ? { ...o, orderStatus: 'SELESAI' as const, completedAt: doneAt } : o);
+                                          setOrders(updated);
+                                          localStorage.setItem('ic_orders', JSON.stringify(updated));
+                                          setHistoryFilter('completed');
+                                          showToast('✅ Pesanan selesai! Silakan beri ulasan pada menu pesananmu.');
+                                          await updateOrderStatusInDb(order.id, 'SELESAI');
+                                          await supabase.from('orders').update({ order_status: 'SELESAI' }).eq('id', order.id);
+                                        }} style={{ padding: "0.25rem 0.7rem", borderRadius: "999px", border: "none", background: "#10b981", color: "#fff", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer" }}>✓ Pesanan Selesai</button>)}</div>); })()}
                             </div>
 
                             {/* Payment & Status Badges */}
@@ -2485,7 +2496,7 @@ export default function App() {
                                   )}
                                   {it.notes && (
                                     <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
-                                      Catatan: "{it.notes}"
+                                      {it.notes ? `Catatan: "${it.notes}"` : ""}
                                     </div>
                                   )}
                                 </div>
@@ -2766,7 +2777,7 @@ export default function App() {
                                 )}
                                 {c.notes && (
                                   <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
-                                    Catatan: "{c.notes}"
+                                    {c.notes ? `Catatan: "${c.notes}"` : ""}
                                   </div>
                                 )}
                                 <div style={{ color: 'var(--primary-color)', fontWeight: 800, marginTop: '0.2rem' }}>

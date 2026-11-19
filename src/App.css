@@ -2838,3 +2838,91 @@ input:-webkit-autofill:focus {
   position: static !important;
   flex-shrink: 0 !important;
 }
+
+/* clean-history-card-ui */
+.order-history-card {
+  max-width: 880px !important;
+  margin: 0 auto 1.35rem auto !important;
+  padding: 1.4rem 1.65rem !important;
+  border-radius: 20px !important;
+}
+.order-history-top {
+  align-items: flex-start !important;
+  gap: 1rem !important;
+  padding-bottom: 1rem !important;
+  border-bottom: 1px dashed var(--surface-border, rgba(255,255,255,0.1)) !important;
+}
+.order-id-group h4 {
+  font-size: 1.15rem !important;
+  margin-bottom: 0.25rem !important;
+}
+.order-tracker-bar {
+  margin: 1.25rem 0 !important;
+  padding: 0.5rem 0 !important;
+}
+
+/* admin-orders-card-grid */
+.admin-table-wrapper,
+.orders-table-container {
+  overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+.admin-table-wrapper table,
+.orders-table-container table {
+  display: block !important;
+  width: 100% !important;
+}
+.admin-table-wrapper thead,
+.orders-table-container thead {
+  display: none !important;
+}
+.admin-table-wrapper tbody,
+.orders-table-container tbody {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+  gap: 1.15rem !important;
+  width: 100% !important;
+}
+.admin-table-wrapper tr,
+.orders-table-container tr {
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--surface-card, #1e293b) !important;
+  border: 1px solid var(--surface-border, rgba(255,255,255,0.1)) !important;
+  border-radius: 18px !important;
+  padding: 1.15rem 1.25rem !important;
+  gap: 0.75rem !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
+}
+.admin-table-wrapper td,
+.orders-table-container td {
+  display: block !important;
+  width: 100% !important;
+  padding: 0 !important;
+  border: none !important;
+  text-align: left !important;
+}
+.admin-table-wrapper td:nth-child(1) {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  padding-bottom: 0.65rem !important;
+  border-bottom: 1px dashed var(--surface-border, rgba(255,255,255,0.12)) !important;
+}
+.admin-table-wrapper td:nth-child(3) {
+  background: var(--surface-color, rgba(15,23,42,0.5)) !important;
+  padding: 0.65rem 0.85rem !important;
+  border-radius: 12px !important;
+}
+.admin-table-wrapper td:nth-child(4) {
+  font-size: 1.15rem !important;
+  color: var(--primary-color, #ff4d4d) !important;
+}
+.admin-table-wrapper .btn-danger {
+  color: #fecaca !important;
+  background: rgba(239, 68, 68, 0.25) !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+}
