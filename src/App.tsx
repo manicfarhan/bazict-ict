@@ -38,11 +38,11 @@ const readFileAsDataUrl = (file: File): Promise<string> => {
 }
 
 export const THEMES = [
-  { id: 'midnight', name: '🌙 Sleek Cyber Dark Slate (Default)', color: '#0f172a' },
-  { id: 'kiosk-light', name: '🍟 Kiosk Clean (Terang)', color: 'var(--text-primary)' },
-  { id: 'pink', name: '🌸 Sakura Pink (Perempuan)', color: '#ec4899' },
-  { id: 'blue', name: '🌊 Ocean Blue', color: '#0284c7' },
-  { id: 'emerald', name: '🌲 Emerald Cendikia', color: '#059669' },
+  { id: 'midnight', name: '🌙 Dark (Default)', color: '#0f172a' },
+  { id: 'kiosk-light', name: '🍟  Clean (Terang)', color: 'var(--text-primary)' },
+  { id: 'pink', name: '🌸 Pink ', color: '#ec4899' },
+  { id: 'blue', name: '🌊 Ocean', color: '#0284c7' },
+  { id: 'emerald', name: '🌲 Emerald', color: '#059669' },
 ]
 
 // ==========================================
@@ -789,7 +789,7 @@ export default function App() {
   // 1. Sync Pesanan Masuk (Realtime)
   const syncOrdersFromCloud = useCallback(async () => {
     // Anti-overwrite guard: avoid overwriting recent local edits (within 20s)
-    if (Date.now() - lastLocalEditRef.current < 20000) return;
+    if (Date.now() - lastLocalEditRef.current < 25000) return;
     const dbOrders = await fetchOrdersFromDb()
     if (dbOrders) {
       setIsCloudConnected(true)

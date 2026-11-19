@@ -574,15 +574,14 @@ body {
   box-shadow: 0 20px 35px rgba(15, 23, 42, 0.12), 0 4px 12px var(--primary-light);
 }
 
-.card-img-wrapper {
-  background: #f1f5f9;
-  width: 100%;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: relative !important;
-  overflow: hidden !important;
+.card-img-wrapper img {
+  width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block;
+  transition: transform 0.4s ease;
 }
+
 
 .card-img-wrapper img {
   width: 100% !important;

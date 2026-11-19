@@ -136,7 +136,7 @@ export async function insertOrderToDb(order: {
   }
 }
 
-export async function updateOrderStatusInDb(orderId: string, status: string): Promise<boolean> {
+export async function updateOrderStatusInDb(orderId: string, status: string): Promise<boolean> { (window as any).__lastAdminSave = Date.now();
   try {
     const updateData: any = { order_status: status };
     // If order is completed, add completedAt timestamp (stored inside items JSON if needed)
