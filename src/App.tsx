@@ -1039,6 +1039,16 @@ export default function App() {
       alert('Harap isi semua kolom wajib (*) untuk data identitas murid!')
       return
     }
+    const pwd = registerForm.password;
+    if (pwd.length < 8 || !/[A-Z]/.test(pwd) || !/[a-z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+      alert('Password belum aman! Wajib minimal 8 karakter dan mengandung huruf besar (A-Z), huruf kecil (a-z), serta angka (0-9).')
+      return
+    }
+    const kamarVal = registerForm.kamar.trim();
+    if (!/[a-zA-Z]/.test(kamarVal) || !/[0-9]/.test(kamarVal)) {
+      alert('Kolom Kamar wajib berisi Nama Kamar dan Nomor Kamar (contoh: Ibnu Sina 204 atau Al-Farabi 12).')
+      return
+    }
     if (users.some(u => u.username.toLowerCase() === registerForm.username.trim().toLowerCase())) {
       alert('Username tersebut sudah dipakai murid lain. Silakan pilih username lain.')
       return
@@ -4956,10 +4966,10 @@ export default function App() {
                         />
                       </div>
                       <div className="form-group">
-                        <label>Angkatan *</label>
+                        <label>Nama Generasi *</label>
                         <input
                           type="text"
-                          placeholder="cth: Angkatan 7"
+                          placeholder="cth: Generasi 11 / Cavalerie"
                           value={registerForm.angkatan}
                           onChange={e => setRegisterForm({ ...registerForm, angkatan: e.target.value })}
                         />
