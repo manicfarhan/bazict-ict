@@ -881,7 +881,7 @@ export default function App() {
       const cloudUsers = Array.isArray(config.users) ? config.users : [];
       const localUsers = (() => { try { return JSON.parse(localStorage.getItem('ic_users') || '[]'); } catch { return []; } })();
       const mergedMap = new Map<string, CustomerUser>();
-      [...INITIAL_USERS, ...localUsers, ...cloudUsers, ...(currentUser ? [currentUser] : [])].forEach(u => {
+      [...localUsers, ...cloudUsers, ...(currentUser ? [currentUser] : [])].forEach(u => {
         if (u && u.username) mergedMap.set(u.username.toLowerCase(), u);
       });
       const finalUsers = Array.from(mergedMap.values());
