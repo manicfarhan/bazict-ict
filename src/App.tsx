@@ -3288,7 +3288,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => {
-                          setSyncModalTab('export');
+                          setSyncTab('export');
                           setSyncCodeOutput(JSON.stringify(buildFullBackupPayload(), null, 2));
                           setIsSyncModalOpen(true);
                         }}
