@@ -1556,6 +1556,8 @@ export default function App() {
   // Multi-Device Sync Handlers
 
   const buildFullBackupPayload = () => ({
+    users,
+    customerCanvaDesign,
     version: '2.0-full',
     menus,
     categories,
@@ -1644,6 +1646,49 @@ export default function App() {
       }
       if (typeof data.currentTheme === 'string') {
         setCurrentTheme(data.currentTheme)
+      }
+      if (Array.isArray(data.users)) {
+        setUsers(data.users)
+        localStorage.setItem('ic_users', JSON.stringify(data.users))
+        cloudUpdates.users = data.users
+      }
+      if (data.customerCanvaDesign && typeof data.customerCanvaDesign === 'object') {
+        const mergedCustDesign = { ...customerCanvaDesign, ...data.customerCanvaDesign }
+        setCustomerCanvaDesign(mergedCustDesign)
+        localStorage.setItem('ic_customer_canva', JSON.stringify(mergedCustDesign))
+        cloudUpdates.canva_design = mergedCustDesign
+      }
+      if (Array.isArray(data.menus)) {
+        localStorage.setItem('ic_menus', JSON.stringify(data.menus))
+        try {
+          await supabase.from('menus').upsert(
+            data.menus.map((m: any) => ({
+              id: m.id,
+              name: m.name,
+              price: m.price,
+              category: m.category,
+              icon: m.icon || '🍲',
+              image_url: m.imageUrl || '',
+              description: m.description || '',
+              stock: m.stock ?? 40,
+              rating: m.rating ?? 5.0,
+              review_count: m.reviewCount ?? 0,
+              variants: m.variants || []
+            })),
+            { onConflict: 'id' }
+          )
+        } catch (e) { console.warn(e) }
+      }
+      if (Array.isArray(data.categories)) localStorage.setItem('ic_categories', JSON.stringify(data.categories))
+      if (Array.isArray(data.foodPosters)) localStorage.setItem('ic_food_posters', JSON.stringify(data.foodPosters))
+      if (Array.isArray(data.showcaseWidgets)) localStorage.setItem('ic_showcase_widgets', JSON.stringify(data.showcaseWidgets))
+      if (Array.isArray(data.heroBadges)) localStorage.setItem('ic_hero_badges', JSON.stringify(data.heroBadges))
+      if (data.storeIdentity) localStorage.setItem('ic_store_identity', JSON.stringify(data.storeIdentity))
+      if (data.aboutData) localStorage.setItem('ic_about_data', JSON.stringify(data.aboutData))
+      if (Object.keys(cloudUpdates).length > 0) {
+        lastLocalEditRef.current = Date.now()
+        ;(window as any).__lastAdminSave = Date.now()
+        await saveAdminConfigToDb(cloudUpdates)
       }
       if (Array.isArray(data.orders)) {
         setOrders(data.orders)
@@ -3239,6 +3284,17 @@ export default function App() {
                         style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.5)', background: '#dc2626', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
                       >
                         🧹 Bersihkan Semua Data Uji Coba
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSyncModalTab('export');
+                          setSyncCodeOutput(JSON.stringify(buildFullBackupPayload(), null, 2));
+                          setIsSyncModalOpen(true);
+                        }}
+                        style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.5)', background: '#2563eb', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        🔄 Sinkronisasi & Backup Semua (.json)
                       </button>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem', fontWeight: 700 }}>
                         Lunas: {formatRupiah((orders || []).filter(o => o.paymentStatus === 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))} | Belum Bayar: {formatRupiah((orders || []).filter(o => o.paymentStatus !== 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))}
