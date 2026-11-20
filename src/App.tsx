@@ -1301,6 +1301,25 @@ export default function App() {
     }
 
     setMenus(updated)
+    localStorage.setItem('ic_menus', JSON.stringify(updated))
+    try {
+      await supabase.from('menus').upsert(
+        updated.map(m => ({
+          id: m.id,
+          name: m.name,
+          price: m.price,
+          category: m.category,
+          icon: m.icon || '🍲',
+          image_url: m.imageUrl || '',
+          description: m.description || '',
+          stock: m.stock ?? 40,
+          rating: m.rating ?? 5.0,
+          review_count: m.reviewCount ?? 0,
+          variants: m.variants || []
+        })),
+        { onConflict: 'id' }
+      )
+    } catch (e) { console.warn('Sync tabel menus:', e) }
     const ok = await saveAdminConfigToDb({ menus: updated })
     if (ok) {
       showToast('✅ Menu & keterangan tersimpan permanen ke Cloud!')
@@ -1316,6 +1335,25 @@ export default function App() {
     if (window.confirm('Hapus menu ini dari daftar kantin?')) {
       const updated = menus.filter(m => m.id !== id)
       setMenus(updated)
+    localStorage.setItem('ic_menus', JSON.stringify(updated))
+    try {
+      await supabase.from('menus').upsert(
+        updated.map(m => ({
+          id: m.id,
+          name: m.name,
+          price: m.price,
+          category: m.category,
+          icon: m.icon || '🍲',
+          image_url: m.imageUrl || '',
+          description: m.description || '',
+          stock: m.stock ?? 40,
+          rating: m.rating ?? 5.0,
+          review_count: m.reviewCount ?? 0,
+          variants: m.variants || []
+        })),
+        { onConflict: 'id' }
+      )
+    } catch (e) { console.warn('Sync tabel menus:', e) }
       saveAdminConfigToDb({ menus: updated })
       showToast('🗑️ Menu berhasil dihapus.')
     }
