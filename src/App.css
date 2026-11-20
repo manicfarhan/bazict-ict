@@ -3177,7 +3177,7 @@ html.has-custom-studio .alt-hero-banner,
 html.has-custom-studio .showcase-widget-card,
 html.has-custom-studio .menu-card-item,
 html.has-custom-studio .order-history-card,
-html.has-custom-studio .ic-navbar,
+html.has-custom-studio .ic-navbar, .has-custom-studio .order-history-card, .has-custom-studio .cod-alert-banner,
 html.has-custom-studio aside > div,
 html.has-custom-studio [style*="var(--surface-color)"],
 html.has-custom-studio [style*="var(--surface-card)"] {
@@ -3233,7 +3233,7 @@ body.has-custom-studio,
   background-size: cover !important;
   background-attachment: fixed !important;
 }
-.has-custom-studio .ic-navbar,
+.has-custom-studio .ic-navbar, .has-custom-studio .order-history-card, .has-custom-studio .cod-alert-banner,
 .has-custom-studio .alt-hero-banner,
 .has-custom-studio .showcase-widget-card,
 .has-custom-studio .menu-card-item,

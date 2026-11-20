@@ -313,28 +313,7 @@ const getCleanStorage = <T,>(key: string, defaultVal: T): T => {
   }
 }
 
-const INITIAL_USERS: CustomerUser[] = [
-  {
-    username: 'murid1',
-    password: '123',
-    name: 'Ahmad Zaki Farhan',
-    kelas: 'XI MIPA 1',
-    kamar: 'Asrama Ibnu Sina Kamar 204',
-    angkatan: 'Angkatan 7',
-    phone: '081234567890',
-    avatar: '🎓'
-  },
-  {
-    username: 'murid2',
-    password: '123',
-    name: 'Aisyah Nabila Putri',
-    kelas: 'X-2',
-    kamar: 'Asrama Fatimah Kamar 102',
-    angkatan: 'Angkatan 8',
-    phone: '085711223344',
-    avatar: '👩‍🎓'
-  }
-]
+const INITIAL_USERS: CustomerUser[] = []
 
 const INITIAL_CATEGORIES: string[] = ['Makanan Berat', 'Camilan', 'Minuman']
 
@@ -882,12 +861,14 @@ export default function App() {
       const localUsers = (() => { try { return JSON.parse(localStorage.getItem('ic_users') || '[]'); } catch { return []; } })();
       const mergedMap = new Map<string, CustomerUser>();
       [...localUsers, ...cloudUsers, ...(currentUser ? [currentUser] : [])].forEach(u => {
-        if (u && u.username) mergedMap.set(u.username.toLowerCase(), u);
+        if (u && u.username && u.username !== 'murid1' && u.username !== 'murid2') {
+          mergedMap.set(u.username.toLowerCase(), u);
+        }
       });
       const finalUsers = Array.from(mergedMap.values());
       setUsers(finalUsers);
       localStorage.setItem('ic_users', JSON.stringify(finalUsers));
-      if (finalUsers.length > cloudUsers.length) {
+      if (finalUsers.length !== cloudUsers.length) {
         saveAdminConfigToDb({ users: finalUsers });
       }
       if (Array.isArray(config.menus) && config.menus.length > 0) {
@@ -1711,16 +1692,24 @@ export default function App() {
       const r = parseInt(hex.substring(0, 2), 16) || 0;
       const g = parseInt(hex.substring(2, 4), 16) || 0;
       const b = parseInt(hex.substring(4, 6), 16) || 0;
-      const isDark = (r * 299 + g * 587 + b * 114) / 1000 < 150;
-      const cardIsLight = (cfg.surfaceCard || '').toLowerCase() === '#ffffff' || (cfg.surfaceCard || '').toLowerCase() === '#fff' || (cfg.surfaceCard || '').startsWith('#f');
-      if (isDark && cardIsLight) {
+      const isDark = (r * 299 + g * 587 + b * 114) / 1000 < 155;
+      if (isDark) {
         return {
           ...cfg,
-          surfaceCard: `rgb(${Math.min(255, r + 24)}, ${Math.min(255, g + 24)}, ${Math.min(255, b + 28)})`,
-          surfaceColor: `rgb(${Math.min(255, r + 14)}, ${Math.min(255, g + 14)}, ${Math.min(255, b + 18)})`,
-          surfaceBorder: 'rgba(255, 255, 255, 0.16)',
+          surfaceCard: `rgb(${Math.min(255, r + 26)}, ${Math.min(255, g + 26)}, ${Math.min(255, b + 32)})`,
+          surfaceColor: `rgb(${Math.min(255, r + 15)}, ${Math.min(255, g + 15)}, ${Math.min(255, b + 20)})`,
+          surfaceBorder: 'rgba(255, 255, 255, 0.22)',
           textPrimary: '#f8fafc',
-          textSecondary: '#cbd5e1'
+          textSecondary: '#e2e8f0'
+        };
+      } else {
+        return {
+          ...cfg,
+          surfaceCard: '#ffffff',
+          surfaceColor: `rgb(${Math.max(0, r - 12)}, ${Math.max(0, g - 12)}, ${Math.max(0, b - 12)})`,
+          surfaceBorder: 'rgba(15, 23, 42, 0.14)',
+          textPrimary: '#0f172a',
+          textSecondary: '#475569'
         };
       }
     }
