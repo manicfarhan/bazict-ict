@@ -566,17 +566,11 @@ export default function App() {
   })
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     if (!customerCanvaDesign) return;
-    const isDefault =
-      customerCanvaDesign.bgColor === INITIAL_CANVA_DESIGN.bgColor &&
-      customerCanvaDesign.surfaceCard === INITIAL_CANVA_DESIGN.surfaceCard &&
-      customerCanvaDesign.primaryColor === INITIAL_CANVA_DESIGN.primaryColor &&
-      customerCanvaDesign.bgType === 'color';
-    if (isDefault) {
-      root.classList.remove('has-custom-studio');
-      return;
-    }
+    root.removeAttribute('data-theme');
     root.classList.add('has-custom-studio');
+    body.classList.add('has-custom-studio');
     const bgFull =
       customerCanvaDesign.bgType === 'image' && customerCanvaDesign.bgImage
         ? `url(${customerCanvaDesign.bgImage})`

@@ -3222,3 +3222,57 @@ html.has-custom-studio .ig-btn-primary {
   background: var(--primary-color) !important;
   color: #ffffff !important;
 }
+
+/* studio-master-priority */
+html.has-custom-studio,
+body.has-custom-studio,
+.has-custom-studio .app-container,
+.has-custom-studio .maximalist-wrapper {
+  background: var(--studio-bg-full) !important;
+  color: var(--text-primary) !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+.has-custom-studio .ic-navbar,
+.has-custom-studio .alt-hero-banner,
+.has-custom-studio .showcase-widget-card,
+.has-custom-studio .menu-card-item,
+.has-custom-studio .order-history-card,
+.has-custom-studio .cod-alert-banner,
+.has-custom-studio aside > div,
+.has-custom-studio .maximalist-center-body > div > div[style*="background"] {
+  background: var(--surface-card) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--text-primary) !important;
+}
+.has-custom-studio .alt-hero-content h2,
+.has-custom-studio .item-price-text {
+  color: var(--primary-color) !important;
+  -webkit-text-fill-color: var(--primary-color) !important;
+}
+.has-custom-studio .alt-hero-content p,
+.has-custom-studio .menu-item-title,
+.has-custom-studio .menu-item-desc,
+.has-custom-studio .cod-alert-banner *,
+.has-custom-studio h1,
+.has-custom-studio h2,
+.has-custom-studio h3,
+.has-custom-studio h4 {
+  color: var(--text-primary) !important;
+}
+.has-custom-studio .dormitory-callout span,
+.has-custom-studio .cat-chip:not(.active),
+.has-custom-studio input,
+.has-custom-studio textarea,
+.has-custom-studio select {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--surface-border) !important;
+}
+.has-custom-studio .item-order-btn,
+.has-custom-studio .cat-chip.active,
+.has-custom-studio .poster-action-btn,
+.has-custom-studio .ig-btn-primary {
+  background: var(--primary-color) !important;
+  color: #ffffff !important;
+}
