@@ -3116,3 +3116,31 @@ aside img {
     max-width: 240px !important;
   }
 }
+
+/* center-hero-banner-exact */
+.hero-showcase-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.hero-center-main {
+  flex: 1 1 620px !important;
+  max-width: 720px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.alt-hero-banner {
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.alt-hero-stickers,
+.dormitory-callout {
+  justify-content: center !important;
+}
