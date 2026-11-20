@@ -566,25 +566,32 @@ export default function App() {
   })
   useEffect(() => {
     const root = document.documentElement;
-    if (!customerCanvaDesign || !(customerCanvaDesign as any).bgColor) {
+    if (!customerCanvaDesign) return;
+    const isDefault =
+      customerCanvaDesign.bgColor === INITIAL_CANVA_DESIGN.bgColor &&
+      customerCanvaDesign.surfaceCard === INITIAL_CANVA_DESIGN.surfaceCard &&
+      customerCanvaDesign.primaryColor === INITIAL_CANVA_DESIGN.primaryColor &&
+      customerCanvaDesign.bgType === 'color';
+    if (isDefault) {
       root.classList.remove('has-custom-studio');
       return;
     }
-    const bg = (customerCanvaDesign as any).bgColor || '#0f172a';
-    const card = (customerCanvaDesign as any).cardColor || bg;
-    const accent = (customerCanvaDesign as any).accentColor || (customerCanvaDesign as any).primaryColor || '#ff4d4d';
-    const hex = bg.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 15;
-    const g = parseInt(hex.substring(2, 4), 16) || 23;
-    const b = parseInt(hex.substring(4, 6), 16) || 42;
-    const isDarkBg = (r * 299 + g * 587 + b * 114) / 1000 < 145;
     root.classList.add('has-custom-studio');
-    root.style.setProperty('--studio-bg', bg);
-    root.style.setProperty('--studio-card', card === bg ? (isDarkBg ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.92)') : card);
-    root.style.setProperty('--studio-surface', isDarkBg ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)');
-    root.style.setProperty('--studio-border', isDarkBg ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)');
-    root.style.setProperty('--studio-text', (customerCanvaDesign as any).textColor || (isDarkBg ? '#f8fafc' : '#0f172a'));
-    root.style.setProperty('--studio-accent', accent);
+    const bgFull =
+      customerCanvaDesign.bgType === 'image' && customerCanvaDesign.bgImage
+        ? `url(${customerCanvaDesign.bgImage})`
+        : customerCanvaDesign.bgType === 'gradient' && customerCanvaDesign.bgGradient
+          ? customerCanvaDesign.bgGradient
+          : customerCanvaDesign.bgColor || '#0b0f19';
+    root.style.setProperty('--studio-bg-full', bgFull);
+    root.style.setProperty('--bg-color', customerCanvaDesign.bgColor || '#0b0f19');
+    root.style.setProperty('--surface-color', customerCanvaDesign.surfaceColor || '#131b2e');
+    root.style.setProperty('--surface-card', customerCanvaDesign.surfaceCard || '#1e293b');
+    root.style.setProperty('--surface-border', customerCanvaDesign.surfaceBorder || 'rgba(255,255,255,0.14)');
+    root.style.setProperty('--primary-color', customerCanvaDesign.primaryColor || '#f43f5e');
+    root.style.setProperty('--text-primary', customerCanvaDesign.textPrimary || '#f8fafc');
+    root.style.setProperty('--text-secondary', customerCanvaDesign.textSecondary || '#cbd5e1');
+    root.style.setProperty('--text-muted', customerCanvaDesign.textSecondary || '#94a3b8');
   }, [customerCanvaDesign]);
 
   // Modal Studio Desain Ala Canva untuk Pembeli (Per-device saja)
@@ -876,19 +883,19 @@ export default function App() {
     const config = await fetchAdminConfigFromDb()
     if (config) {
       setIsCloudConnected(true)
-      if (Array.isArray(config.menus)) {
+      if (Array.isArray(config.menus) && config.menus.length > 0) {
         setMenus(config.menus)
         localStorage.setItem('ic_menus', JSON.stringify(config.menus))
       }
-      if (Array.isArray(config.categories)) {
+      if (Array.isArray(config.categories) && config.categories.length > 0) {
         setCategories(config.categories)
         localStorage.setItem('ic_categories', JSON.stringify(config.categories))
       }
-      if (Array.isArray(config.food_posters)) {
+      if (Array.isArray(config.food_posters) && config.food_posters.length > 0) {
         setFoodPosters(config.food_posters)
         localStorage.setItem('ic_food_posters', JSON.stringify(config.food_posters))
       }
-      if (Array.isArray(config.showcase_widgets)) {
+      if (Array.isArray(config.showcase_widgets) && config.showcase_widgets.length > 0) {
         setShowcaseWidgets(config.showcase_widgets)
         localStorage.setItem('ic_showcase_widgets', JSON.stringify(config.showcase_widgets))
       }

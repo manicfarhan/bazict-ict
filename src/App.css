@@ -3209,3 +3209,61 @@ html.has-custom-studio .poster-action-btn {
   background: var(--studio-accent) !important;
   color: #ffffff !important;
 }
+
+/* studio-canva-complete-theme */
+html.has-custom-studio,
+html.has-custom-studio body {
+  background: var(--studio-bg-full) !important;
+  color: var(--text-primary) !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+html.has-custom-studio .alt-hero-banner,
+html.has-custom-studio .showcase-widget-card,
+html.has-custom-studio .menu-card-item,
+html.has-custom-studio .order-history-card,
+html.has-custom-studio .ic-navbar,
+html.has-custom-studio aside > div,
+html.has-custom-studio [style*="var(--surface-color)"],
+html.has-custom-studio [style*="var(--surface-card)"] {
+  background: var(--surface-card) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--text-primary) !important;
+}
+html.has-custom-studio .alt-hero-content h2,
+html.has-custom-studio .item-price-text {
+  color: var(--primary-color) !important;
+  -webkit-text-fill-color: var(--primary-color) !important;
+}
+html.has-custom-studio .alt-hero-content p,
+html.has-custom-studio .menu-item-title,
+html.has-custom-studio .menu-item-desc,
+html.has-custom-studio .showcase-title-text,
+html.has-custom-studio .poster-title,
+html.has-custom-studio h1,
+html.has-custom-studio h2,
+html.has-custom-studio h3,
+html.has-custom-studio h4 {
+  color: var(--text-primary) !important;
+}
+html.has-custom-studio p,
+html.has-custom-studio .poster-subtitle,
+html.has-custom-studio .showcase-sub-text {
+  color: var(--text-secondary) !important;
+}
+html.has-custom-studio .dormitory-callout span,
+html.has-custom-studio .cat-chip:not(.active),
+html.has-custom-studio input,
+html.has-custom-studio textarea,
+html.has-custom-studio select {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--surface-border) !important;
+}
+html.has-custom-studio .item-order-btn,
+html.has-custom-studio .cat-chip.active,
+html.has-custom-studio .poster-action-btn,
+html.has-custom-studio .ig-btn-primary {
+  background: var(--primary-color) !important;
+  color: #ffffff !important;
+}
