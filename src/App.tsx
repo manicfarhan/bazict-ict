@@ -1703,32 +1703,7 @@ export default function App() {
   }
 
   // Inline dynamic CSS Variables based on Canva Studio configuration (Isolasi Customer vs Admin)
-  const _unusedHarmonize = typeof window !== "undefined" && false; const autoHarmonizeStudio = (prev: CanvaDesignConfig, patch: Partial<CanvaDesignConfig>): CanvaDesignConfig => {
-    const next = { ...prev, ...patch };
-    if (patch.bgColor && !patch.surfaceCard) {
-      const hex = patch.bgColor.replace('#', '');
-      if (hex.length === 6) {
-        const r = parseInt(hex.substring(0, 2), 16) || 0;
-        const g = parseInt(hex.substring(2, 4), 16) || 0;
-        const b = parseInt(hex.substring(4, 6), 16) || 0;
-        const isDark = (r * 299 + g * 587 + b * 114) / 1000 < 145;
-        if (isDark) {
-          next.surfaceCard = `rgba(${Math.min(255, r + 24)}, ${Math.min(255, g + 24)}, ${Math.min(255, b + 28)}, 0.92)`;
-          next.surfaceColor = `rgba(${Math.min(255, r + 14)}, ${Math.min(255, g + 14)}, ${Math.min(255, b + 18)}, 0.95)`;
-          next.surfaceBorder = 'rgba(255, 255, 255, 0.16)';
-          if (!patch.textPrimary) next.textPrimary = '#f8fafc';
-          if (!patch.textSecondary) next.textSecondary = '#cbd5e1';
-        } else {
-          next.surfaceCard = '#ffffff';
-          next.surfaceColor = `rgba(${Math.max(0, r - 12)}, ${Math.max(0, g - 12)}, ${Math.max(0, b - 12)}, 0.95)`;
-          next.surfaceBorder = 'rgba(15, 23, 42, 0.12)';
-          if (!patch.textPrimary) next.textPrimary = '#0f172a';
-          if (!patch.textSecondary) next.textSecondary = '#475569';
-        }
-      }
-    }
-    return next;
-  };
+  
   const activeDesign = viewRole === 'customer' ? customerCanvaDesign : canvaDesign
   const dynamicCssVariables = {
     '--bg-color': activeDesign.bgColor,
