@@ -579,12 +579,12 @@ export default function App() {
           : customerCanvaDesign.bgColor || '#0b0f19';
     root.style.setProperty('--studio-bg-full', bgFull);
     root.style.setProperty('--bg-color', customerCanvaDesign.bgColor || '#0b0f19');
-    root.style.setProperty('--surface-color', customerCanvaDesign.surfaceColor || '#131b2e');
-    root.style.setProperty('--surface-card', customerCanvaDesign.surfaceCard || '#1e293b');
-    root.style.setProperty('--surface-border', customerCanvaDesign.surfaceBorder || 'rgba(255,255,255,0.14)');
+    const resCfg = getResolvedDesign(customerCanvaDesign); root.style.setProperty('--surface-color', resCfg.surfaceColor || '#131b2e');
+    root.style.setProperty('--surface-card', resCfg.surfaceCard || '#1e293b');
+    root.style.setProperty('--surface-border', resCfg.surfaceBorder || 'rgba(255,255,255,0.14)');
     root.style.setProperty('--primary-color', customerCanvaDesign.primaryColor || '#f43f5e');
-    root.style.setProperty('--text-primary', customerCanvaDesign.textPrimary || '#f8fafc');
-    root.style.setProperty('--text-secondary', customerCanvaDesign.textSecondary || '#cbd5e1');
+    root.style.setProperty('--text-primary', resCfg.textPrimary || '#f8fafc');
+    root.style.setProperty('--text-secondary', resCfg.textSecondary || '#cbd5e1');
     root.style.setProperty('--text-muted', customerCanvaDesign.textSecondary || '#94a3b8');
   }, [customerCanvaDesign]);
 
@@ -1704,7 +1704,29 @@ export default function App() {
 
   // Inline dynamic CSS Variables based on Canva Studio configuration (Isolasi Customer vs Admin)
   
-  const activeDesign = viewRole === 'customer' ? customerCanvaDesign : canvaDesign
+    const getResolvedDesign = (cfg: CanvaDesignConfig): CanvaDesignConfig => {
+    const bg = (cfg.bgColor || '#0b0f19').trim();
+    const hex = bg.replace('#', '');
+    if (hex.length === 6) {
+      const r = parseInt(hex.substring(0, 2), 16) || 0;
+      const g = parseInt(hex.substring(2, 4), 16) || 0;
+      const b = parseInt(hex.substring(4, 6), 16) || 0;
+      const isDark = (r * 299 + g * 587 + b * 114) / 1000 < 150;
+      const cardIsLight = (cfg.surfaceCard || '').toLowerCase() === '#ffffff' || (cfg.surfaceCard || '').toLowerCase() === '#fff' || (cfg.surfaceCard || '').startsWith('#f');
+      if (isDark && cardIsLight) {
+        return {
+          ...cfg,
+          surfaceCard: `rgb(${Math.min(255, r + 24)}, ${Math.min(255, g + 24)}, ${Math.min(255, b + 28)})`,
+          surfaceColor: `rgb(${Math.min(255, r + 14)}, ${Math.min(255, g + 14)}, ${Math.min(255, b + 18)})`,
+          surfaceBorder: 'rgba(255, 255, 255, 0.16)',
+          textPrimary: '#f8fafc',
+          textSecondary: '#cbd5e1'
+        };
+      }
+    }
+    return cfg;
+  };
+  const activeDesign = getResolvedDesign(viewRole === 'customer' ? customerCanvaDesign : canvaDesign);
   const dynamicCssVariables = {
     '--bg-color': activeDesign.bgColor,
     '--surface-color': activeDesign.surfaceColor,
