@@ -3027,3 +3027,32 @@ input:-webkit-autofill:focus {
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
   border: 1px solid #86efac !important;
 }
+
+/* lock-hero-side-column-height */
+.hero-side-column {
+  max-height: 360px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 4px !important;
+  scrollbar-width: thin !important;
+}
+.hero-side-column::-webkit-scrollbar {
+  width: 5px !important;
+}
+.hero-side-column::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35) !important;
+  border-radius: 999px !important;
+}
+.hero-side-column .showcase-widget-card {
+  margin-bottom: 0.75rem !important;
+  flex-shrink: 0 !important;
+}
+.hero-side-column .showcase-img-box {
+  height: 175px !important;
+  max-height: 175px !important;
+}
+.hero-side-column .showcase-img-box img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
