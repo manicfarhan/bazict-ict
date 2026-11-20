@@ -3276,3 +3276,27 @@ body.has-custom-studio,
   background: var(--primary-color) !important;
   color: #ffffff !important;
 }
+
+/* universal-contrast-inherit */
+.has-custom-studio .order-history-card,
+.has-custom-studio .cod-alert-banner,
+.has-custom-studio .menu-card-item,
+.has-custom-studio .alt-hero-banner,
+.has-custom-studio .ic-navbar,
+.has-custom-studio .showcase-widget-card {
+  background: var(--surface-card) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--text-primary) !important;
+}
+.has-custom-studio .order-date,
+.has-custom-studio .menu-item-desc,
+.has-custom-studio .poster-subtitle,
+.has-custom-studio .showcase-sub-text,
+.has-custom-studio [style*="var(--text-muted)"] {
+  color: var(--text-muted) !important;
+}
+.has-custom-studio .item-price-text,
+.has-custom-studio .alt-hero-content h2 {
+  color: var(--primary-color) !important;
+  -webkit-text-fill-color: var(--primary-color) !important;
+}

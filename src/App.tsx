@@ -1730,24 +1730,35 @@ export default function App() {
       const r = parseInt(hex.substring(0, 2), 16) || 0;
       const g = parseInt(hex.substring(2, 4), 16) || 0;
       const b = parseInt(hex.substring(4, 6), 16) || 0;
-      const isDark = (r * 299 + g * 587 + b * 114) / 1000 < 155;
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      const isDark = brightness < 150;
+      const pHex = (cfg.primaryColor || '#f43f5e').replace('#', '');
+      const pr = parseInt(pHex.substring(0, 2), 16) || 244;
+      const pg = parseInt(pHex.substring(2, 4), 16) || 63;
+      const pb = parseInt(pHex.substring(4, 6), 16) || 94;
+      const pBright = (pr * 299 + pg * 587 + pb * 114) / 1000;
+
       if (isDark) {
+        const safeAccent = pBright < 130 ? '#fbbf24' : (cfg.primaryColor || '#ff6b6b');
         return {
           ...cfg,
-          surfaceCard: `rgb(${Math.min(255, r + 26)}, ${Math.min(255, g + 26)}, ${Math.min(255, b + 32)})`,
-          surfaceColor: `rgb(${Math.min(255, r + 15)}, ${Math.min(255, g + 15)}, ${Math.min(255, b + 20)})`,
-          surfaceBorder: 'rgba(255, 255, 255, 0.22)',
-          textPrimary: '#f8fafc',
+          surfaceCard: `rgb(${Math.min(255, r + 24)}, ${Math.min(255, g + 24)}, ${Math.min(255, b + 30)})`,
+          surfaceColor: `rgb(${Math.min(255, r + 14)}, ${Math.min(255, g + 14)}, ${Math.min(255, b + 18)})`,
+          surfaceBorder: 'rgba(255, 255, 255, 0.24)',
+          primaryColor: safeAccent,
+          textPrimary: '#ffffff',
           textSecondary: '#e2e8f0'
         };
       } else {
+        const safeAccent = pBright > 180 ? '#e11d48' : (cfg.primaryColor || '#e11d48');
         return {
           ...cfg,
           surfaceCard: '#ffffff',
           surfaceColor: `rgb(${Math.max(0, r - 12)}, ${Math.max(0, g - 12)}, ${Math.max(0, b - 12)})`,
           surfaceBorder: 'rgba(15, 23, 42, 0.14)',
+          primaryColor: safeAccent,
           textPrimary: '#0f172a',
-          textSecondary: '#475569'
+          textSecondary: '#334155'
         };
       }
     }
@@ -1761,7 +1772,7 @@ export default function App() {
     '--surface-border': activeDesign.surfaceBorder,
     '--primary-color': activeDesign.primaryColor,
     '--text-primary': activeDesign.textPrimary,
-    '--text-secondary': activeDesign.textSecondary,
+    '--text-secondary': activeDesign.textSecondary, '--text-muted': activeDesign.textSecondary,
     backgroundColor: activeDesign.bgType === 'color' ? activeDesign.bgColor : undefined,
     backgroundImage: activeDesign.bgType === 'gradient' ? activeDesign.bgGradient :
       activeDesign.bgType === 'image' && activeDesign.bgImage ? `url(${activeDesign.bgImage})` : undefined,
@@ -3197,7 +3208,37 @@ export default function App() {
                   >
                     <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>💰</div>
                     <div className="stat-info">
-                      <h3>Total Penjualan</h3><button onClick={() => { const rows = [["ID Pesanan","Waktu","Pemesan","Kelas/Kamar","Detail Menu","Total","Metode","Status Bayar","Status Pesanan"], ...(orders || []).map((o: any) => [o.id, `"${new Date(o.createdAt).toLocaleString("id-ID")}"`, `"${(o.customerName || "").replace(/"/g, "'")}"`, `"${o.customerKelas || ""} ${o.customerKamar || ""}"`, `"${(o.items || []).map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}"`, o.total || 0, `"${o.paymentMethod || ""}"`, o.paymentStatus || "", o.orderStatus || ""])]; const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "laporan-omzet-bazar.csv"; a.click(); }} style={{ marginTop: "0.5rem", marginBottom: "0.35rem", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--surface-border)", background: "var(--primary-color)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>📥 Unduh Laporan Omzet (.csv)
+                      <h3>Total Penjualan</h3><button onClick={() => { const rows = [["ID Pesanan","Waktu","Pemesan","Kelas/Kamar","Detail Menu","Total","Metode","Status Bayar","Status Pesanan"], ...(orders || []).map((o: any) => [o.id, `"${new Date(o.createdAt).toLocaleString("id-ID")}"`, `"${(o.customerName || "").replace(/"/g, "'")}"`, `"${o.customerKelas || ""} ${o.customerKamar || ""}"`, `"${(o.items || []).map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}"`, o.total || 0, `"${o.paymentMethod || ""}"`, o.paymentStatus || "", o.orderStatus || ""])]; const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "laporan-omzet-bazar.csv"; a.click(); }} style={{ marginTop: "0.5rem", marginBottom: "0.35rem", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--surface-border)", background: "var(--primary-color)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>📥 Unduh Laporan Omzet (.csv)</button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!window.confirm('PERINGATAN 1/2: Hapus SEMUA data uji coba (akun tester, pesanan, ulasan, menu lama) dan kembalikan web ke keadaan bersih?')) return;
+                          if (!window.confirm('KONFIRMASI TERAKHIR 2/2: Yakin ingin membersihkan seluruh database sekarang?')) return;
+                          try {
+                            await supabase.from('orders').delete().neq('id', '');
+                            await supabase.from('reviews').delete().neq('id', '');
+                            await supabase.from('menus').delete().neq('id', '');
+                            await supabase.from('admin_config').upsert({
+                              id: 'config',
+                              config: {
+                                menus: [],
+                                users: [],
+                                food_posters: [],
+                                showcase_widgets: [],
+                                hero_badges: [],
+                                categories: ['Makanan Berat', 'Camilan', 'Minuman'],
+                                canva_design: INITIAL_CANVA_DESIGN,
+                                updated_at: new Date().toISOString()
+                              }
+                            }, { onConflict: 'id' });
+                          } catch (err) { console.warn(err); }
+                          Object.keys(localStorage).filter(k => k.startsWith('ic_')).forEach(k => localStorage.removeItem(k));
+                          alert('✅ Seluruh data uji coba & akun tester berhasil dihapus bersih! Halaman akan dimuat ulang.');
+                          window.location.reload();
+                        }}
+                        style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.5)', background: '#dc2626', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        🧹 Bersihkan Semua Data Uji Coba
                       </button>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem', fontWeight: 700 }}>
                         Lunas: {formatRupiah((orders || []).filter(o => o.paymentStatus === 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))} | Belum Bayar: {formatRupiah((orders || []).filter(o => o.paymentStatus !== 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))}
