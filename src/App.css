@@ -3166,3 +3166,46 @@ aside img {
     grid-column: 3 !important;
   }
 }
+
+/* studio-desain-full-override */
+body.has-custom-studio,
+html.has-custom-studio body {
+  background: var(--studio-bg) !important;
+  color: var(--studio-text) !important;
+}
+html.has-custom-studio .alt-hero-banner,
+html.has-custom-studio .showcase-widget-card,
+html.has-custom-studio .menu-card-item,
+html.has-custom-studio .order-history-card,
+html.has-custom-studio aside > div,
+html.has-custom-studio .ic-navbar {
+  background: var(--studio-card) !important;
+  border-color: var(--studio-border) !important;
+  color: var(--studio-text) !important;
+}
+html.has-custom-studio .alt-hero-content h2,
+html.has-custom-studio .item-price-text {
+  color: var(--studio-accent) !important;
+  -webkit-text-fill-color: var(--studio-accent) !important;
+}
+html.has-custom-studio .alt-hero-content p,
+html.has-custom-studio .menu-item-title,
+html.has-custom-studio .menu-item-desc,
+html.has-custom-studio .showcase-title-text,
+html.has-custom-studio .poster-title {
+  color: var(--studio-text) !important;
+}
+html.has-custom-studio .dormitory-callout span,
+html.has-custom-studio .cat-chip:not(.active),
+html.has-custom-studio input[type="text"],
+html.has-custom-studio input[type="search"] {
+  background: var(--studio-surface) !important;
+  color: var(--studio-text) !important;
+  border-color: var(--studio-border) !important;
+}
+html.has-custom-studio .item-order-btn,
+html.has-custom-studio .cat-chip.active,
+html.has-custom-studio .poster-action-btn {
+  background: var(--studio-accent) !important;
+  color: #ffffff !important;
+}

@@ -564,6 +564,28 @@ export default function App() {
     }
     return INITIAL_CANVA_DESIGN
   })
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!customerCanvaDesign || !(customerCanvaDesign as any).bgColor) {
+      root.classList.remove('has-custom-studio');
+      return;
+    }
+    const bg = (customerCanvaDesign as any).bgColor || '#0f172a';
+    const card = (customerCanvaDesign as any).cardColor || bg;
+    const accent = (customerCanvaDesign as any).accentColor || (customerCanvaDesign as any).primaryColor || '#ff4d4d';
+    const hex = bg.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16) || 15;
+    const g = parseInt(hex.substring(2, 4), 16) || 23;
+    const b = parseInt(hex.substring(4, 6), 16) || 42;
+    const isDarkBg = (r * 299 + g * 587 + b * 114) / 1000 < 145;
+    root.classList.add('has-custom-studio');
+    root.style.setProperty('--studio-bg', bg);
+    root.style.setProperty('--studio-card', card === bg ? (isDarkBg ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.92)') : card);
+    root.style.setProperty('--studio-surface', isDarkBg ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)');
+    root.style.setProperty('--studio-border', isDarkBg ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)');
+    root.style.setProperty('--studio-text', (customerCanvaDesign as any).textColor || (isDarkBg ? '#f8fafc' : '#0f172a'));
+    root.style.setProperty('--studio-accent', accent);
+  }, [customerCanvaDesign]);
 
   // Modal Studio Desain Ala Canva untuk Pembeli (Per-device saja)
   const [isCustomerCanvaModalOpen, setIsCustomerCanvaModalOpen] = useState<boolean>(false)
