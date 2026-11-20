@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 
 /**
  * Konfigurasi Supabase Project MAN IC Tala
@@ -291,7 +291,7 @@ export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>): P
       config: newConfigObj
     }
 
-    const { error } = await supabase.from('admin_config').upsert(payload)
+    const { error } = await supabase.from('admin_config').upsert(payload, { onConflict: 'id' })
     if (error) {
       console.error('❌ Gagal menyimpan admin_config ke Supabase:', error.message)
       return false
