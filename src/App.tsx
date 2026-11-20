@@ -877,6 +877,19 @@ export default function App() {
     const config = await fetchAdminConfigFromDb()
     if (config) {
       setIsCloudConnected(true)
+      // smart-merge-users
+      const cloudUsers = Array.isArray(config.users) ? config.users : [];
+      const localUsers = (() => { try { return JSON.parse(localStorage.getItem('ic_users') || '[]'); } catch { return []; } })();
+      const mergedMap = new Map<string, CustomerUser>();
+      [...INITIAL_USERS, ...localUsers, ...cloudUsers, ...(currentUser ? [currentUser] : [])].forEach(u => {
+        if (u && u.username) mergedMap.set(u.username.toLowerCase(), u);
+      });
+      const finalUsers = Array.from(mergedMap.values());
+      setUsers(finalUsers);
+      localStorage.setItem('ic_users', JSON.stringify(finalUsers));
+      if (finalUsers.length > cloudUsers.length) {
+        saveAdminConfigToDb({ users: finalUsers });
+      }
       if (Array.isArray(config.menus) && config.menus.length > 0) {
         setMenus(config.menus)
         localStorage.setItem('ic_menus', JSON.stringify(config.menus))
@@ -1092,6 +1105,7 @@ export default function App() {
     }
 
     const updatedUsers = [...users, newUser]
+    saveAdminConfigToDb({ users: updatedUsers })
     lastLocalEditRef.current = Date.now(); (window as any).__lastAdminSave = Date.now()
     setUsers(updatedUsers)
     localStorage.setItem('ic_users', JSON.stringify(updatedUsers))
@@ -1689,6 +1703,32 @@ export default function App() {
   }
 
   // Inline dynamic CSS Variables based on Canva Studio configuration (Isolasi Customer vs Admin)
+  const autoHarmonizeStudio = (prev: CanvaDesignConfig, patch: Partial<CanvaDesignConfig>): CanvaDesignConfig => {
+    const next = { ...prev, ...patch };
+    if (patch.bgColor && !patch.surfaceCard) {
+      const hex = patch.bgColor.replace('#', '');
+      if (hex.length === 6) {
+        const r = parseInt(hex.substring(0, 2), 16) || 0;
+        const g = parseInt(hex.substring(2, 4), 16) || 0;
+        const b = parseInt(hex.substring(4, 6), 16) || 0;
+        const isDark = (r * 299 + g * 587 + b * 114) / 1000 < 145;
+        if (isDark) {
+          next.surfaceCard = `rgba(${Math.min(255, r + 24)}, ${Math.min(255, g + 24)}, ${Math.min(255, b + 28)}, 0.92)`;
+          next.surfaceColor = `rgba(${Math.min(255, r + 14)}, ${Math.min(255, g + 14)}, ${Math.min(255, b + 18)}, 0.95)`;
+          next.surfaceBorder = 'rgba(255, 255, 255, 0.16)';
+          if (!patch.textPrimary) next.textPrimary = '#f8fafc';
+          if (!patch.textSecondary) next.textSecondary = '#cbd5e1';
+        } else {
+          next.surfaceCard = '#ffffff';
+          next.surfaceColor = `rgba(${Math.max(0, r - 12)}, ${Math.max(0, g - 12)}, ${Math.max(0, b - 12)}, 0.95)`;
+          next.surfaceBorder = 'rgba(15, 23, 42, 0.12)';
+          if (!patch.textPrimary) next.textPrimary = '#0f172a';
+          if (!patch.textSecondary) next.textSecondary = '#475569';
+        }
+      }
+    }
+    return next;
+  };
   const activeDesign = viewRole === 'customer' ? customerCanvaDesign : canvaDesign
   const dynamicCssVariables = {
     '--bg-color': activeDesign.bgColor,
