@@ -1331,7 +1331,7 @@ export default function App() {
     setAdminEditingId(null)
   }
 
-  const handleDeleteMenu = (id: string) => {
+  const handleDeleteMenu = async (id: string) => { await supabase.from("menus").delete().eq("id", id);
     if (window.confirm('Hapus menu ini dari daftar kantin?')) {
       const updated = menus.filter(m => m.id !== id)
       setMenus(updated)
