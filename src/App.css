@@ -3056,3 +3056,27 @@ input:-webkit-autofill:focus {
   height: 100% !important;
   object-fit: cover !important;
 }
+
+/* fix-maximalist-aside-layout */
+.maximalist-center-body {
+  align-self: flex-start !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+.maximalist-center-body > div > .hero-showcase-container {
+  align-items: stretch !important;
+  margin-bottom: 1.25rem !important;
+}
+aside {
+  align-self: flex-start !important;
+  position: sticky !important;
+  top: 88px !important;
+  max-height: calc(100vh - 108px) !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+}
+aside .poster-img-wrapper,
+aside img {
+  max-height: 170px !important;
+  object-fit: cover !important;
+}
