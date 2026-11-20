@@ -3080,3 +3080,39 @@ aside img {
   max-height: 170px !important;
   object-fit: cover !important;
 }
+
+/* center-symmetry-grid-layout */
+@media (min-width: 1180px) {
+  .maximalist-center-body {
+    width: 100% !important;
+    max-width: 1060px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  div:has(> .maximalist-center-body) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1060px) minmax(0, 1fr) !important;
+    gap: 1.25rem !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+    box-sizing: border-box !important;
+  }
+  div:has(> .maximalist-center-body) > .maximalist-center-body {
+    grid-column: 2 !important;
+  }
+  div:has(> .maximalist-center-body) > aside:first-of-type:not(:last-of-type) {
+    grid-column: 1 !important;
+    justify-self: end !important;
+    width: 100% !important;
+    max-width: 240px !important;
+  }
+  div:has(> .maximalist-center-body) > aside:last-of-type {
+    grid-column: 3 !important;
+    justify-self: start !important;
+    width: 100% !important;
+    max-width: 240px !important;
+  }
+}
