@@ -3144,3 +3144,25 @@ aside img {
 .dormitory-callout {
   justify-content: center !important;
 }
+
+/* grid-hero-center-lock */
+@media (min-width: 960px) {
+  .hero-showcase-container {
+    display: grid !important;
+    grid-template-columns: 210px minmax(0, 1fr) 210px !important;
+    align-items: center !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+  }
+  .hero-showcase-container > .float-anim-left {
+    grid-column: 1 !important;
+  }
+  .hero-showcase-container > .hero-center-main {
+    grid-column: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .hero-showcase-container > .float-anim-right {
+    grid-column: 3 !important;
+  }
+}
