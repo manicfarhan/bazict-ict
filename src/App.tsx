@@ -1703,7 +1703,7 @@ export default function App() {
   }
 
   // Inline dynamic CSS Variables based on Canva Studio configuration (Isolasi Customer vs Admin)
-  const autoHarmonizeStudio = (prev: CanvaDesignConfig, patch: Partial<CanvaDesignConfig>): CanvaDesignConfig => {
+  const _unusedHarmonize = typeof window !== "undefined" && false; const autoHarmonizeStudio = (prev: CanvaDesignConfig, patch: Partial<CanvaDesignConfig>): CanvaDesignConfig => {
     const next = { ...prev, ...patch };
     if (patch.bgColor && !patch.surfaceCard) {
       const hex = patch.bgColor.replace('#', '');
