@@ -256,7 +256,7 @@ export async function fetchAdminConfigFromDb() {
       console.error('❌ Gagal mengambil admin_config:', error.message)
       return null
     }
-    const cfg = (data as any)?.config || data
+    const rawCfg = (data as any)?.config ?? data; const cfg = typeof rawCfg === 'string' ? JSON.parse(rawCfg) : rawCfg;
     if (cfg) {
       cachedAdminConfig = { ...cachedAdminConfig, ...cfg }
     }
@@ -277,12 +277,13 @@ export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>): P
       .eq('id', 'config')
       .maybeSingle()
 
-    const dbConfigObj = (existing as any)?.config || (existing as any) || {}
-    const newConfigObj = {
+    const rawExist = (existing as any)?.config ?? (existing as any) ?? {}; const dbConfigObj = typeof rawExist === 'string' ? JSON.parse(rawExist) : rawExist;
+        const newConfigObj: Record<string, any> = {
       ...dbConfigObj,
       ...configData,
       updated_at: new Date().toISOString()
     }
+    Object.keys(newConfigObj).forEach(k => { if (/^\d+$/.test(k)) delete newConfigObj[k]; });
 
     cachedAdminConfig = newConfigObj
 
