@@ -284,6 +284,25 @@ export async function saveAdminConfigToDb(configData: Partial<DbAdminConfig>): P
       updated_at: new Date().toISOString()
     }
     Object.keys(newConfigObj).forEach(k => { if (/^\d+$/.test(k)) delete newConfigObj[k]; });
+    // smart-merge-about-team
+    if (newConfigObj.about_data && dbConfigObj.about_data) {
+      const prevTeam = Array.isArray(dbConfigObj.about_data.team) ? dbConfigObj.about_data.team : [];
+      const nextTeam = Array.isArray(newConfigObj.about_data.team) ? newConfigObj.about_data.team : [];
+      const deletedIds: string[] = Array.isArray(newConfigObj.about_data._deletedTeamIds) ? newConfigObj.about_data._deletedTeamIds : [];
+      const teamMap = new Map<string, any>();
+      [...prevTeam, ...nextTeam].forEach((m: any) => {
+        if (!m) return;
+        const key = String(m.id || m.name || '').trim().toLowerCase();
+        if (key && !deletedIds.includes(String(m.id)) && !deletedIds.includes(key)) {
+          teamMap.set(key, { ...(teamMap.get(key) || {}), ...m });
+        }
+      });
+      newConfigObj.about_data = {
+        ...dbConfigObj.about_data,
+        ...newConfigObj.about_data,
+        team: Array.from(teamMap.values())
+      };
+    }
 
     cachedAdminConfig = newConfigObj
 

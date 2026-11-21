@@ -908,8 +908,18 @@ export default function App() {
         if (abt.history && abt.history.includes('IC-Bites')) {
           abt.history = abt.history.replace(/IC-Bites/g, 'ICT-Go')
         }
-        setAboutData(prev => ({ ...prev, ...abt }))
-        localStorage.setItem('ic_about_comprehensive', JSON.stringify(abt))
+        // merge-local-about-team
+        setAboutData(prev => {
+          const prevTeam = Array.isArray(prev.team) ? prev.team : [];
+          const cloudTeam = Array.isArray(abt.team) ? abt.team : [];
+          const tMap = new Map<string, any>();
+          [...prevTeam, ...cloudTeam].forEach((m: any) => {
+            if (m && (m.id || m.name)) tMap.set(String(m.id || m.name).trim().toLowerCase(), m);
+          });
+          const mergedAbt = { ...prev, ...abt, team: cloudTeam.length > 0 ? Array.from(tMap.values()) : prevTeam };
+          localStorage.setItem('ic_about_comprehensive', JSON.stringify(mergedAbt));
+          return mergedAbt;
+        })
       }
       if (config.canva_design && typeof config.canva_design === 'object' && Object.keys(config.canva_design).length > 0) {
         setCanvaDesign(prev => ({ ...prev, ...config.canva_design }))
@@ -1953,7 +1963,7 @@ export default function App() {
           {/* Main App Header */}
           <header className="main-app-header">
             <div className="brand-section" onClick={() => setCustomerTab('menu')}>
-              <div className="brand-logo-alt">{storeIdentity.logoEmoji || '🍟'}</div>
+              <div className="brand-logo-alt">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🍟')}</div>
               <div className="brand-text">
                 <h1>{storeIdentity.brandName} <span>{storeIdentity.brandSuffix}</span></h1>
                 <div className="brand-sub">{storeIdentity.brandSubtitle}</div>
@@ -3099,7 +3109,7 @@ export default function App() {
           {/* Sidebar Admin */}
           <aside className="sidebar">
             <div className="brand">
-              <span className="brand-icon">{storeIdentity.logoEmoji || '🏫'}</span>
+              <span className="brand-icon">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🏫')}</span>
               <div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>Admin {storeIdentity.brandName}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>MAN IC Tanah Laut</div>
@@ -3295,6 +3305,36 @@ export default function App() {
                         style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.5)', background: '#2563eb', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
                       >
                         🔄 Sinkronisasi & Backup Semua (.json)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          lastLocalEditRef.current = Date.now();
+                          (window as any).__lastAdminSave = Date.now();
+                          localStorage.setItem('ic_about_comprehensive', JSON.stringify(aboutData));
+                          localStorage.setItem('ic_store_identity', JSON.stringify(storeIdentity));
+                          localStorage.setItem('ic_menus', JSON.stringify(menus));
+                          localStorage.setItem('ic_categories', JSON.stringify(categories));
+                          localStorage.setItem('ic_food_posters', JSON.stringify(foodPosters));
+                          localStorage.setItem('ic_showcase_widgets', JSON.stringify(showcaseWidgets));
+                          localStorage.setItem('ic_hero_badges', JSON.stringify(heroBadges));
+                          localStorage.setItem('ic_users', JSON.stringify(users));
+                          const ok = await saveAdminConfigToDb({
+                            menus,
+                            categories,
+                            food_posters: foodPosters,
+                            showcase_widgets: showcaseWidgets,
+                            hero_badges: heroBadges,
+                            store_identity: storeIdentity,
+                            about_data: aboutData,
+                            canva_design: canvaDesign,
+                            users
+                          });
+                          showToast(ok ? '💾 Semua perubahan (Menu, Identitas, Logo & Tentang Kami) tersimpan ke Cloud!' : '⚠️ Tersimpan lokal, cek koneksi Supabase.');
+                        }}
+                        style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.5)', background: '#059669', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        💾 Simpan Semua ke Cloud (Termasuk Tentang Kami)
                       </button>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem', fontWeight: 700 }}>
                         Lunas: {formatRupiah((orders || []).filter(o => o.paymentStatus === 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))} | Belum Bayar: {formatRupiah((orders || []).filter(o => o.paymentStatus !== 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))}
@@ -5032,7 +5072,7 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setIsAuthModalOpen(false)}>
           <div className="ig-auth-wrapper" onClick={e => e.stopPropagation()}>
             <button className="modal-close-x" onClick={() => setIsAuthModalOpen(false)}>✕</button>
-            <div className="ig-brand-logo">{storeIdentity.logoEmoji || '🍟'}</div>
+            <div className="ig-brand-logo">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🍟')}</div>
             <div className="ig-title">{storeIdentity.brandName} {storeIdentity.brandSuffix}</div>
             <div className="ig-sub">{storeIdentity.brandSubtitle}</div>
 
@@ -5926,7 +5966,7 @@ export default function App() {
         <div className="modal-overlay" style={{ zIndex: 1100 }}>
           <div className="gateway-modal-box">
             <div className="gateway-badge-glow">✨ SISTEM KANTIN ASRAMA MAN IC TALA</div>
-            <div className="gateway-logo">{storeIdentity.logoEmoji || '🍟'}</div>
+            <div className="gateway-logo">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🍟')}</div>
             <h2 className="gateway-title">{storeIdentity.brandName} <span style={{ color: 'var(--primary-color)' }}>{storeIdentity.brandSuffix}</span></h2>
             <p className="gateway-subtitle">
               Selamat datang! Silakan pilih akses masuk Anda untuk mulai menggunakan sistem:
