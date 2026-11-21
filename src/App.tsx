@@ -1963,7 +1963,7 @@ export default function App() {
           {/* Main App Header */}
           <header className="main-app-header">
             <div className="brand-section" onClick={() => setCustomerTab('menu')}>
-              <div className="brand-logo-alt">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🍟')}</div>
+              <div className="brand-logo-alt">{(storeIdentity as any).logoUrl ? React.createElement('img', { src: (storeIdentity as any).logoUrl, alt: storeIdentity.brandName, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : (storeIdentity.logoEmoji || '🍟')}</div>
               <div className="brand-text">
                 <h1>{storeIdentity.brandName} <span>{storeIdentity.brandSuffix}</span></h1>
                 <div className="brand-sub">{storeIdentity.brandSubtitle}</div>
@@ -3109,7 +3109,7 @@ export default function App() {
           {/* Sidebar Admin */}
           <aside className="sidebar">
             <div className="brand">
-              <span className="brand-icon">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🏫')}</span>
+              <span className="brand-icon">{(storeIdentity as any).logoUrl ? React.createElement('img', { src: (storeIdentity as any).logoUrl, alt: storeIdentity.brandName, style: { width: '36px', height: '36px', objectFit: 'cover', borderRadius: '10px' } }) : (storeIdentity.logoEmoji || '🏫')}</span>
               <div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>Admin {storeIdentity.brandName}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>MAN IC Tanah Laut</div>
@@ -5072,7 +5072,7 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setIsAuthModalOpen(false)}>
           <div className="ig-auth-wrapper" onClick={e => e.stopPropagation()}>
             <button className="modal-close-x" onClick={() => setIsAuthModalOpen(false)}>✕</button>
-            <div className="ig-brand-logo">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🍟')}</div>
+            <div className="ig-brand-logo">{(storeIdentity as any).logoUrl ? React.createElement('img', { src: (storeIdentity as any).logoUrl, alt: storeIdentity.brandName, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : (storeIdentity.logoEmoji || '🍟')}</div>
             <div className="ig-title">{storeIdentity.brandName} {storeIdentity.brandSuffix}</div>
             <div className="ig-sub">{storeIdentity.brandSubtitle}</div>
 
@@ -5966,7 +5966,7 @@ export default function App() {
         <div className="modal-overlay" style={{ zIndex: 1100 }}>
           <div className="gateway-modal-box">
             <div className="gateway-badge-glow">✨ SISTEM KANTIN ASRAMA MAN IC TALA</div>
-            <div className="gateway-logo">{(storeIdentity as any).logoUrl ?  : (storeIdentity.logoEmoji || '🍟')}</div>
+            <div className="gateway-logo">{(storeIdentity as any).logoUrl ? React.createElement('img', { src: (storeIdentity as any).logoUrl, alt: storeIdentity.brandName, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : (storeIdentity.logoEmoji || '🍟')}</div>
             <h2 className="gateway-title">{storeIdentity.brandName} <span style={{ color: 'var(--primary-color)' }}>{storeIdentity.brandSuffix}</span></h2>
             <p className="gateway-subtitle">
               Selamat datang! Silakan pilih akses masuk Anda untuk mulai menggunakan sistem:
