@@ -4611,6 +4611,62 @@ export default function App() {
                         value={storeIdentity.logoEmoji}
                         onChange={e => setStoreIdentity({ ...storeIdentity, logoEmoji: e.target.value })}
                       />
+                      <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <label className="nav-tool-btn" style={{ cursor: 'pointer', fontSize: '0.75rem', padding: '0.35rem 0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                          🖼️ Upload File Gambar Logo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={e => {
+                              const file = e.target.files?.item(0);
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = ev => {
+                                const img = new Image();
+                                img.onload = () => {
+                                  const canvas = document.createElement('canvas');
+                                  const maxDim = 256;
+                                  let w = img.width, h = img.height;
+                                  if (w > maxDim || h > maxDim) {
+                                    if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                                    else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                                  }
+                                  canvas.width = w;
+                                  canvas.height = h;
+                                  canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+                                  const compressed = canvas.toDataURL('image/png');
+                                  const nextId = { ...storeIdentity, logoUrl: compressed };
+                                  setStoreIdentity(nextId);
+                                  localStorage.setItem('ic_store_identity', JSON.stringify(nextId));
+                                  saveAdminConfigToDb({ store_identity: nextId });
+                                  showToast('🖼️ Gambar logo berhasil diunggah & tersimpan ke Cloud!');
+                                };
+                                img.src = ev.target?.result as string;
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                        {(storeIdentity as any).logoUrl && (
+                          <>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextId = { ...storeIdentity, logoUrl: '' };
+                                setStoreIdentity(nextId);
+                                localStorage.setItem('ic_store_identity', JSON.stringify(nextId));
+                                saveAdminConfigToDb({ store_identity: nextId });
+                                showToast('🗑️ Gambar logo dihapus, kembali memakai emoji.');
+                              }}
+                              style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              Hapus Logo
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>Nama Depan Brand</label>
