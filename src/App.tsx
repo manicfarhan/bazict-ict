@@ -4131,6 +4131,19 @@ export default function App() {
                       value={(aboutData as any).galleryTitle ?? '📸 Galeri Kebersamaan Asrama'}
                       onChange={e => setAboutData({ ...aboutData, galleryTitle: e.target.value } as any)}
                     />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        lastLocalEditRef.current = Date.now();
+                        (window as any).__lastAdminSave = Date.now();
+                        localStorage.setItem('ic_about_comprehensive', JSON.stringify(aboutData));
+                        const ok = await saveAdminConfigToDb({ about_data: aboutData });
+                        showToast(ok ? '💾 Judul galeri berhasil disimpan ke Cloud!' : '⚠️ Tersimpan lokal, cek koneksi Supabase.');
+                      }}
+                      style={{ marginTop: '0.6rem', padding: '0.45rem 0.9rem', borderRadius: '8px', border: 'none', background: '#059669', color: '#ffffff', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      💾 Simpan Judul Galeri ke Cloud
+                    </button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
                     {aboutData.galleryImages.map((img, idx) => (
