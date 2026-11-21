@@ -2722,7 +2722,7 @@ export default function App() {
                               src={(() => {
                                 const u = aboutData.videoUrl.trim();
                                 const m = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-                                return m ? `https://youtube.com{m}` : u;
+                                return m ? 'https://www.youtube.com/embed/' + m.at(1) : u;
                               })()}
                               title="Video Profil"
                               style={{ width: '100%', height: '100%', border: 'none' }}
