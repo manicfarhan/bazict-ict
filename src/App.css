@@ -3314,3 +3314,16 @@ body.has-custom-studio,
 .ic-top-banner span {
   color: #f8fafc !important;
 }
+
+/* fix-about-team-spacing */
+.team-members-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap: 1.15rem !important;
+  padding-bottom: 1.5rem !important;
+}
+.team-member-card {
+  padding: 1.25rem 1rem !important;
+  border-radius: 18px !important;
+  height: auto !important;
+}

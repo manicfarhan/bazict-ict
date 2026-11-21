@@ -520,6 +520,7 @@ export default function App() {
   })
 
   // Tentang Kami Komprehensif
+  const [gallerySlideIdx, setGallerySlideIdx] = useState<number>(0);
   const [aboutData, setAboutData] = useState<ComprehensiveAbout>(() => {
     const val = getCleanStorage('ic_about_comprehensive', INITIAL_ABOUT_DATA)
     if (val) {
@@ -4079,6 +4080,15 @@ export default function App() {
                     />
                   </div>
 
+                  <div className="form-group" style={{ marginTop: '0.75rem', marginBottom: '1rem' }}>
+                    <label>Judul Galeri Foto (Bisa Diubah Bebas)</label>
+                    <input
+                      type="text"
+                      placeholder="cth: 📸 Galeri Kebersamaan Asrama"
+                      value={(aboutData as any).galleryTitle ?? '📸 Galeri Kebersamaan Asrama'}
+                      onChange={e => setAboutData({ ...aboutData, galleryTitle: e.target.value } as any)}
+                    />
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
                     {aboutData.galleryImages.map((img, idx) => (
                       <div key={idx} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '110px' }}>
