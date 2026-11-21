@@ -2710,34 +2710,77 @@ export default function App() {
 
                   {/* Video & Galeri Suasana */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                    {/* Video Embed */}
-                    <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1rem' }}>🎥 Video Profil & Suasana Asrama</h3>
-                      <div style={{ width: '100%', height: '220px', borderRadius: '14px', overflow: 'hidden', background: '#000000' }}>
-                        {aboutData.videoUrl.startsWith('data:video') ? (
-                          <video src={aboutData.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <iframe
-                            src={aboutData.videoUrl}
-                            title="Video Profil"
-                            style={{ width: '100%', height: '100%', border: 'none' }}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
+                    {/* Video Embed (Auto-convert link YouTube agar tidak refused to connect) */}
+                    {aboutData.videoUrl && aboutData.videoUrl.trim() !== '' && (
+                      <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.5rem' }}>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1rem' }}>🎥 Video Profil & Suasana Asrama</h3>
+                        <div style={{ width: '100%', height: '240px', borderRadius: '14px', overflow: 'hidden', background: '#000000' }}>
+                          {aboutData.videoUrl.startsWith('data:video') ? (
+                            <video src={aboutData.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <iframe
+                              src={(() => {
+                                const u = aboutData.videoUrl.trim();
+                                const m = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                                return m ? `https://youtube.com{m}` : u;
+                              })()}
+                              title="Video Profil"
+                              style={{ width: '100%', height: '100%', border: 'none' }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Galeri Foto Looping & Geser Samping */}
+                    <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.5rem', gridColumn: !aboutData.videoUrl ? '1 / -1' : undefined }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '0.5rem' }}>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>{(aboutData as any).galleryTitle || '📸 Galeri Kebersamaan Asrama'}</h3>
+                        {aboutData.galleryImages.length > 1 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => setGallerySlideIdx(prev => (prev - 1 + aboutData.galleryImages.length) % aboutData.galleryImages.length)}
+                              style={{ width: '32px', height: '32px', borderRadius: '999px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                              ◀
+                            </button>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                              {(gallerySlideIdx % aboutData.galleryImages.length) + 1} / {aboutData.galleryImages.length}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setGallerySlideIdx(prev => (prev + 1) % aboutData.galleryImages.length)}
+                              style={{ width: '32px', height: '32px', borderRadius: '999px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                              ▶
+                            </button>
+                          </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Galeri Foto */}
-                    <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: '20px', padding: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1rem' }}>📸 Galeri Kebersamaan Asrama</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
-                        {aboutData.galleryImages.map((imgUrl, i) => (
-                          <div key={i} style={{ height: '105px', borderRadius: '12px', overflow: 'hidden', background: 'var(--surface-card)' }}>
-                            <img src={imgUrl} alt={`Galeri ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                        ))}
-                      </div>
+                      {aboutData.galleryImages.length === 0 ? (
+                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem', borderRadius: '14px', border: '1px dashed var(--surface-border)' }}>
+                          Belum ada foto galeri yang diunggah.
+                        </div>
+                      ) : (
+                        <div
+                          style={{ position: 'relative', width: '100%', height: '240px', borderRadius: '14px', overflow: 'hidden', background: 'var(--surface-card)', cursor: aboutData.galleryImages.length > 1 ? 'pointer' : 'default' }}
+                          onClick={() => {
+                            if (aboutData.galleryImages.length > 1) {
+                              setGallerySlideIdx(prev => (prev + 1) % aboutData.galleryImages.length);
+                            }
+                          }}
+                          title={aboutData.galleryImages.length > 1 ? 'Klik untuk geser ke foto berikutnya (looping)' : ''}
+                        >
+                          <img
+                            src={aboutData.galleryImages[gallerySlideIdx % aboutData.galleryImages.length]}
+                            alt={`Galeri ${(gallerySlideIdx % aboutData.galleryImages.length) + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.3s ease' }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
