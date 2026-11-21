@@ -3245,6 +3245,88 @@ export default function App() {
             {/* TAB ADMIN 1: DASHBOARD */}
             {adminTab === 'Dashboard' && (
               <div>
+                {/* dashboard-master-toolbar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '1rem 1.25rem', marginBottom: '1.25rem', borderRadius: '16px', background: 'var(--surface-card)', border: '1px solid var(--surface-border)' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>⚡ Kontrol Pusat & Sinkronisasi Cloud</div>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>Auto-save aktif • Mencakup seluruh bagian di menu kiri (Menu, Kategori, Showcase, Poster, Identitas, Desain, Tentang Kami & Pengguna)</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        lastLocalEditRef.current = Date.now();
+                        (window as any).__lastAdminSave = Date.now();
+                        localStorage.setItem('ic_about_comprehensive', JSON.stringify(aboutData));
+                        localStorage.setItem('ic_store_identity', JSON.stringify(storeIdentity));
+                        localStorage.setItem('ic_menus', JSON.stringify(menus));
+                        localStorage.setItem('ic_categories', JSON.stringify(categories));
+                        localStorage.setItem('ic_food_posters', JSON.stringify(foodPosters));
+                        localStorage.setItem('ic_showcase_widgets', JSON.stringify(showcaseWidgets));
+                        localStorage.setItem('ic_hero_badges', JSON.stringify(heroBadges));
+                        localStorage.setItem('ic_canva_design', JSON.stringify(canvaDesign));
+                        localStorage.setItem('ic_users', JSON.stringify(users));
+                        const ok = await saveAdminConfigToDb({
+                          menus,
+                          categories,
+                          food_posters: foodPosters,
+                          showcase_widgets: showcaseWidgets,
+                          hero_badges: heroBadges,
+                          store_identity: storeIdentity,
+                          about_data: aboutData,
+                          canva_design: canvaDesign,
+                          users
+                        });
+                        showToast(ok ? '💾 Semua bagian di menu kiri berhasil disimpan ke Cloud Supabase!' : '⚠️ Tersimpan lokal, cek koneksi Supabase.');
+                      }}
+                      style={{ padding: '0.5rem 0.9rem', borderRadius: '10px', border: 'none', background: '#059669', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                    >
+                      💾 Simpan Semua ke Cloud
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSyncTab('export');
+                        setSyncCodeOutput(JSON.stringify(buildFullBackupPayload(), null, 2));
+                        setIsSyncModalOpen(true);
+                      }}
+                      style={{ padding: '0.5rem 0.9rem', borderRadius: '10px', border: 'none', background: '#2563eb', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                    >
+                      🔄 Unduh / Impor Semua (.json)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!window.confirm('PERINGATAN 1/2: Hapus SEMUA data uji coba (akun tester, pesanan, ulasan, menu lama) dan kembalikan web ke keadaan bersih?')) return;
+                        if (!window.confirm('KONFIRMASI TERAKHIR 2/2: Yakin ingin membersihkan seluruh database sekarang?')) return;
+                        try {
+                          await supabase.from('orders').delete().neq('id', '');
+                          await supabase.from('reviews').delete().neq('id', '');
+                          await supabase.from('menus').delete().neq('id', '');
+                          await supabase.from('admin_config').upsert({
+                            id: 'config',
+                            config: {
+                              menus: [],
+                              users: [],
+                              food_posters: [],
+                              showcase_widgets: [],
+                              hero_badges: [],
+                              categories: ['Makanan Berat', 'Camilan', 'Minuman'],
+                              canva_design: INITIAL_CANVA_DESIGN,
+                              updated_at: new Date().toISOString()
+                            }
+                          }, { onConflict: 'id' });
+                        } catch (err) { console.warn(err); }
+                        Object.keys(localStorage).filter(k => k.startsWith('ic_')).forEach(k => localStorage.removeItem(k));
+                        alert('✅ Seluruh data uji coba berhasil dihapus bersih! Halaman akan dimuat ulang.');
+                        window.location.reload();
+                      }}
+                      style={{ padding: '0.5rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(220,38,38,0.18)', color: '#fca5a5', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                    >
+                      🧹 Reset Data Uji Coba
+                    </button>
+                  </div>
+                </div>
                 <div className="stats-grid">
                   <div
                     className={`stat-card admin-interactive-box ${selectedAdminBoxId === 'stat-unpaid' ? 'is-selected' : ''}`}
@@ -3264,78 +3346,6 @@ export default function App() {
                     <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>💰</div>
                     <div className="stat-info">
                       <h3>Total Penjualan</h3><button onClick={() => { const rows = [["ID Pesanan","Waktu","Pemesan","Kelas/Kamar","Detail Menu","Total","Metode","Status Bayar","Status Pesanan"], ...(orders || []).map((o: any) => [o.id, `"${new Date(o.createdAt).toLocaleString("id-ID")}"`, `"${(o.customerName || "").replace(/"/g, "'")}"`, `"${o.customerKelas || ""} ${o.customerKamar || ""}"`, `"${(o.items || []).map((i: any) => `${i.quantity}x ${i.name}`).join(", ")}"`, o.total || 0, `"${o.paymentMethod || ""}"`, o.paymentStatus || "", o.orderStatus || ""])]; const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "laporan-omzet-bazar.csv"; a.click(); }} style={{ marginTop: "0.5rem", marginBottom: "0.35rem", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--surface-border)", background: "var(--primary-color)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>📥 Unduh Laporan Omzet (.csv)</button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!window.confirm('PERINGATAN 1/2: Hapus SEMUA data uji coba (akun tester, pesanan, ulasan, menu lama) dan kembalikan web ke keadaan bersih?')) return;
-                          if (!window.confirm('KONFIRMASI TERAKHIR 2/2: Yakin ingin membersihkan seluruh database sekarang?')) return;
-                          try {
-                            await supabase.from('orders').delete().neq('id', '');
-                            await supabase.from('reviews').delete().neq('id', '');
-                            await supabase.from('menus').delete().neq('id', '');
-                            await supabase.from('admin_config').upsert({
-                              id: 'config',
-                              config: {
-                                menus: [],
-                                users: [],
-                                food_posters: [],
-                                showcase_widgets: [],
-                                hero_badges: [],
-                                categories: ['Makanan Berat', 'Camilan', 'Minuman'],
-                                canva_design: INITIAL_CANVA_DESIGN,
-                                updated_at: new Date().toISOString()
-                              }
-                            }, { onConflict: 'id' });
-                          } catch (err) { console.warn(err); }
-                          Object.keys(localStorage).filter(k => k.startsWith('ic_')).forEach(k => localStorage.removeItem(k));
-                          alert('✅ Seluruh data uji coba & akun tester berhasil dihapus bersih! Halaman akan dimuat ulang.');
-                          window.location.reload();
-                        }}
-                        style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.5)', background: '#dc2626', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
-                      >
-                        🧹 Bersihkan Semua Data Uji Coba
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSyncTab('export');
-                          setSyncCodeOutput(JSON.stringify(buildFullBackupPayload(), null, 2));
-                          setIsSyncModalOpen(true);
-                        }}
-                        style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.5)', background: '#2563eb', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
-                      >
-                        🔄 Sinkronisasi & Backup Semua (.json)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          lastLocalEditRef.current = Date.now();
-                          (window as any).__lastAdminSave = Date.now();
-                          localStorage.setItem('ic_about_comprehensive', JSON.stringify(aboutData));
-                          localStorage.setItem('ic_store_identity', JSON.stringify(storeIdentity));
-                          localStorage.setItem('ic_menus', JSON.stringify(menus));
-                          localStorage.setItem('ic_categories', JSON.stringify(categories));
-                          localStorage.setItem('ic_food_posters', JSON.stringify(foodPosters));
-                          localStorage.setItem('ic_showcase_widgets', JSON.stringify(showcaseWidgets));
-                          localStorage.setItem('ic_hero_badges', JSON.stringify(heroBadges));
-                          localStorage.setItem('ic_users', JSON.stringify(users));
-                          const ok = await saveAdminConfigToDb({
-                            menus,
-                            categories,
-                            food_posters: foodPosters,
-                            showcase_widgets: showcaseWidgets,
-                            hero_badges: heroBadges,
-                            store_identity: storeIdentity,
-                            about_data: aboutData,
-                            canva_design: canvaDesign,
-                            users
-                          });
-                          showToast(ok ? '💾 Semua perubahan (Menu, Identitas, Logo & Tentang Kami) tersimpan ke Cloud!' : '⚠️ Tersimpan lokal, cek koneksi Supabase.');
-                        }}
-                        style={{ marginTop: '0.45rem', marginLeft: '0.45rem', padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.5)', background: '#059669', color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
-                      >
-                        💾 Simpan Semua ke Cloud (Termasuk Tentang Kami)
-                      </button>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem', fontWeight: 700 }}>
                         Lunas: {formatRupiah((orders || []).filter(o => o.paymentStatus === 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))} | Belum Bayar: {formatRupiah((orders || []).filter(o => o.paymentStatus !== 'PAID' && o.orderStatus !== 'DIBATALKAN').reduce((s, o) => s + (o.total || 0), 0))}
                       </div>
