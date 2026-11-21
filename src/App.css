@@ -3300,3 +3300,17 @@ body.has-custom-studio,
   color: var(--primary-color) !important;
   -webkit-text-fill-color: var(--primary-color) !important;
 }
+
+/* fix-grid-row-top-align */
+@media (min-width: 1180px) {
+  div:has(> .maximalist-center-body) > .maximalist-center-body,
+  div:has(> .maximalist-center-body) > aside {
+    grid-row: 1 !important;
+    align-self: start !important;
+    margin-top: 0 !important;
+  }
+}
+.ic-top-banner,
+.ic-top-banner span {
+  color: #f8fafc !important;
+}
